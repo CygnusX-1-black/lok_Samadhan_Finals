@@ -36,6 +36,13 @@ jobs:
           channel: 'stable'
           cache: true
 
+      - name: Setup Environment Files
+        run: |
+          cd "Lok Samadhan"
+          cp .env.example .env
+          mkdir -p assets
+          cp .env.example assets/.env
+
       - name: Install Dependencies
         run: |
           cd "Lok Samadhan"
