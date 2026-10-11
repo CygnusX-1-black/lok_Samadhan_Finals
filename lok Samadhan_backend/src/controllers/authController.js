@@ -257,13 +257,17 @@ class AuthController {
             redirectTo,
             queryParams: {
               access_type: 'offline',
-              prompt: 'consent'
+              prompt: 'select_account'
             }
           }
         });
 
         if (error) {
           return errorResponse(res, error.message, 500);
+        }
+
+        if (!data || !data.url) {
+          return errorResponse(res, 'Failed to generate Google OAuth authorization URL from Supabase.', 500);
         }
 
         return successResponse(res, {
@@ -273,12 +277,49 @@ class AuthController {
         }, 'Google OAuth URL generated successfully');
       }
 
-      // Local fallback simulation
-      return successResponse(res, {
-        url: `${redirectTo}?auth=google_simulated`,
-        provider: 'google',
-        redirectTo
-      }, 'Simulated Google OAuth URL generated');
+      return errorResponse(res, 'Supabase authentication service is not configured. Please check SUPABASE_URL and SUPABASE_ANON_KEY in server environment.', 503);
+    } catch (err) {
+      return errorResponse(res, err.message, 500);
+    }
+  }
+
+  /**
+   * POST /api/auth/exchange-code
+   * Exchanges authorization code from Supabase OAuth redirect for session
+   */
+  async exchangeAuthCode(req, res) {
+    try {
+      const { code } = req.body;
+      if (!code) {
+        return errorResponse(res, 'Authorization code is required', 400);
+      }
+
+      if (supabaseClient && supabaseClient.auth) {
+        const { data, error } = await supabaseClient.auth.exchangeCodeForSession(code);
+        if (error || !data || !data.session) {
+          return errorResponse(res, error?.message || 'Failed to exchange authorization code with Supabase', 401);
+        }
+
+        const user = data.user;
+        const fullName = user.user_metadata?.full_name || user.user_metadata?.name || user.email.split('@')[0];
+        const userProfile = {
+          id: user.id,
+          email: user.email,
+          name: fullName,
+          avatarUrl: user.user_metadata?.avatar_url || null,
+          role: 'citizen',
+          provider: 'google'
+        };
+
+        return successResponse(res, {
+          user: userProfile,
+          token: data.session.access_token,
+          refreshToken: data.session.refresh_token,
+          message: 'Google authentication verified'
+        });
+      }
+
+      return errorResponse(res, 'Authentication service not available', 503);
     } catch (err) {
       return errorResponse(res, err.message, 500);
     }

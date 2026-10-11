@@ -173,10 +173,21 @@ class Grievance {
   final String block;
   final String district;
   final String state;
-  final double latitude;
-  final double longitude;
+  final double? latitude;
+  final double? longitude;
+  final double? gpsAccuracyM;
+  final DateTime? locationCapturedAt;
   final String? photoUrl;
   final String? photoAnalysisSummary;
+  final String? imageVerificationStatus;
+  final String? imageCivicCategory;
+  final double? imageConfidenceScore;
+  final String? imageAuthenticityStatus;
+  final String? imageAuthenticityDetails;
+  final String? imageDetectorInfo;
+  final DateTime? imageVerifiedAt;
+  final double? exifGpsLatitude;
+  final double? exifGpsLongitude;
   final UrgencyLevel urgency;
   final double aiConfidenceScore;
   GrievanceStatus status;
@@ -201,10 +212,21 @@ class Grievance {
     required this.block,
     required this.district,
     required this.state,
-    this.latitude = 25.5941,
-    this.longitude = 85.1376,
+    this.latitude,
+    this.longitude,
+    this.gpsAccuracyM,
+    this.locationCapturedAt,
     this.photoUrl,
     this.photoAnalysisSummary,
+    this.imageVerificationStatus,
+    this.imageCivicCategory,
+    this.imageConfidenceScore,
+    this.imageAuthenticityStatus,
+    this.imageAuthenticityDetails,
+    this.imageDetectorInfo,
+    this.imageVerifiedAt,
+    this.exifGpsLatitude,
+    this.exifGpsLongitude,
     required this.urgency,
     required this.aiConfidenceScore,
     required this.status,
@@ -254,10 +276,25 @@ class Grievance {
       block: json['block']?.toString() ?? '',
       district: json['district']?.toString() ?? '',
       state: json['state']?.toString() ?? '',
-      latitude: (json['latitude'] as num?)?.toDouble() ?? 25.5941,
-      longitude: (json['longitude'] as num?)?.toDouble() ?? 85.1376,
+      latitude: (json['latitude'] as num?)?.toDouble() ?? (json['lat'] as num?)?.toDouble(),
+      longitude: (json['longitude'] as num?)?.toDouble() ?? (json['lon'] as num?)?.toDouble() ?? (json['lng'] as num?)?.toDouble(),
+      gpsAccuracyM: (json['gpsAccuracyM'] as num?)?.toDouble() ?? (json['gps_accuracy_m'] as num?)?.toDouble(),
+      locationCapturedAt: json['locationCapturedAt'] != null || json['location_captured_at'] != null
+          ? DateTime.tryParse(json['locationCapturedAt']?.toString() ?? json['location_captured_at']?.toString() ?? '')
+          : null,
       photoUrl: json['photoUrl']?.toString() ?? json['photo_url']?.toString(),
       photoAnalysisSummary: json['photoAnalysisSummary']?.toString() ?? json['photo_analysis_summary']?.toString(),
+      imageVerificationStatus: json['imageVerificationStatus']?.toString() ?? json['image_verification_status']?.toString(),
+      imageCivicCategory: json['imageCivicCategory']?.toString() ?? json['image_civic_category']?.toString(),
+      imageConfidenceScore: (json['imageConfidenceScore'] as num?)?.toDouble() ?? (json['image_confidence_score'] as num?)?.toDouble(),
+      imageAuthenticityStatus: json['imageAuthenticityStatus']?.toString() ?? json['image_authenticity_status']?.toString(),
+      imageAuthenticityDetails: json['imageAuthenticityDetails']?.toString() ?? json['image_authenticity_details']?.toString(),
+      imageDetectorInfo: json['imageDetectorInfo']?.toString() ?? json['image_detector_info']?.toString(),
+      imageVerifiedAt: json['imageVerifiedAt'] != null || json['image_verified_at'] != null
+          ? DateTime.tryParse(json['imageVerifiedAt']?.toString() ?? json['image_verified_at']?.toString() ?? '')
+          : null,
+      exifGpsLatitude: (json['exifGpsLatitude'] as num?)?.toDouble() ?? (json['exif_gps_latitude'] as num?)?.toDouble(),
+      exifGpsLongitude: (json['exifGpsLongitude'] as num?)?.toDouble() ?? (json['exif_gps_longitude'] as num?)?.toDouble(),
       urgency: urgency,
       aiConfidenceScore: (json['aiConfidenceScore'] as num?)?.toDouble() ?? 0.90,
       status: status,
@@ -286,8 +323,19 @@ class Grievance {
     'state': state,
     'latitude': latitude,
     'longitude': longitude,
+    'gpsAccuracyM': gpsAccuracyM,
+    'locationCapturedAt': locationCapturedAt?.toIso8601String(),
     'photoUrl': photoUrl,
     'photoAnalysisSummary': photoAnalysisSummary,
+    'imageVerificationStatus': imageVerificationStatus,
+    'imageCivicCategory': imageCivicCategory,
+    'imageConfidenceScore': imageConfidenceScore,
+    'imageAuthenticityStatus': imageAuthenticityStatus,
+    'imageAuthenticityDetails': imageAuthenticityDetails,
+    'imageDetectorInfo': imageDetectorInfo,
+    'imageVerifiedAt': imageVerifiedAt?.toIso8601String(),
+    'exifGpsLatitude': exifGpsLatitude,
+    'exifGpsLongitude': exifGpsLongitude,
     'urgency': urgency.name,
     'aiConfidenceScore': aiConfidenceScore,
     'status': status.name,
@@ -300,6 +348,27 @@ class Grievance {
     'escalationLevel': escalationLevel,
     'auditLog': auditLog.map((e) => e.toJson()).toList(),
   };
+
+  bool get hasValidGps =>
+      latitude != null &&
+      longitude != null &&
+      !(latitude == 0.0 && longitude == 0.0);
+
+  String get formattedGps {
+    if (!hasValidGps) return 'Location not available';
+    final lat = latitude!;
+    final lon = longitude!;
+    final latDir = lat >= 0 ? 'N' : 'S';
+    final lonDir = lon >= 0 ? 'E' : 'W';
+    return '${lat.abs().toStringAsFixed(4)}° $latDir, ${lon.abs().toStringAsFixed(4)}° $lonDir';
+  }
+
+  String get formattedAccuracy {
+    if (gpsAccuracyM != null && gpsAccuracyM! > 0) {
+      return '±${gpsAccuracyM!.toStringAsFixed(0)} meters';
+    }
+    return '';
+  }
 
   bool get isSlaBreached {
     if (status == GrievanceStatus.resolved) return false;
@@ -325,6 +394,19 @@ class Grievance {
     List<GrievanceAuditStep>? auditLog,
     String? photoUrl,
     String? photoAnalysisSummary,
+    String? imageVerificationStatus,
+    String? imageCivicCategory,
+    double? imageConfidenceScore,
+    String? imageAuthenticityStatus,
+    String? imageAuthenticityDetails,
+    String? imageDetectorInfo,
+    DateTime? imageVerifiedAt,
+    double? exifGpsLatitude,
+    double? exifGpsLongitude,
+    double? latitude,
+    double? longitude,
+    double? gpsAccuracyM,
+    DateTime? locationCapturedAt,
   }) {
     return Grievance(
       id: id,
@@ -338,10 +420,21 @@ class Grievance {
       block: block,
       district: district,
       state: state,
-      latitude: latitude,
-      longitude: longitude,
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      gpsAccuracyM: gpsAccuracyM ?? this.gpsAccuracyM,
+      locationCapturedAt: locationCapturedAt ?? this.locationCapturedAt,
       photoUrl: photoUrl ?? this.photoUrl,
       photoAnalysisSummary: photoAnalysisSummary ?? this.photoAnalysisSummary,
+      imageVerificationStatus: imageVerificationStatus ?? this.imageVerificationStatus,
+      imageCivicCategory: imageCivicCategory ?? this.imageCivicCategory,
+      imageConfidenceScore: imageConfidenceScore ?? this.imageConfidenceScore,
+      imageAuthenticityStatus: imageAuthenticityStatus ?? this.imageAuthenticityStatus,
+      imageAuthenticityDetails: imageAuthenticityDetails ?? this.imageAuthenticityDetails,
+      imageDetectorInfo: imageDetectorInfo ?? this.imageDetectorInfo,
+      imageVerifiedAt: imageVerifiedAt ?? this.imageVerifiedAt,
+      exifGpsLatitude: exifGpsLatitude ?? this.exifGpsLatitude,
+      exifGpsLongitude: exifGpsLongitude ?? this.exifGpsLongitude,
       urgency: urgency,
       aiConfidenceScore: aiConfidenceScore,
       status: status ?? this.status,

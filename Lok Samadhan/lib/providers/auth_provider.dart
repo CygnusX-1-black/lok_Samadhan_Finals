@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../models/user_account.dart';
 import '../services/api_service.dart';
-
 import '../utils/web_redirect.dart';
 
 class AuthProvider extends ChangeNotifier {
@@ -30,9 +30,18 @@ class AuthProvider extends ChangeNotifier {
   static const String _prefUserKey = 'lok_samadhan_auth_user';
   static const String _prefTokenKey = 'lok_samadhan_auth_token';
 
-  /// Initialize and restore existing session from LocalStorage / SharedPreferences
+  /// Initialize and restore existing session from LocalStorage / SharedPreferences or OAuth callback
   Future<void> _initSession() async {
     try {
+      // 1. Process any Google OAuth redirect tokens or codes present in the Web address bar
+      final handledOauth = await _handleWebOAuthCallback();
+      if (handledOauth) {
+        _isInitialized = true;
+        notifyListeners();
+        return;
+      }
+
+      // 2. Otherwise restore existing cached session from SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final userJsonStr = prefs.getString(_prefUserKey);
       final token = prefs.getString(_prefTokenKey);
@@ -52,6 +61,87 @@ class AuthProvider extends ChangeNotifier {
       _isInitialized = true;
       notifyListeners();
     }
+  }
+
+  /// Inspects and exchanges real Supabase Google OAuth callback tokens without infinite redirects
+  Future<bool> _handleWebOAuthCallback() async {
+    if (!kIsWeb) return false;
+
+    try {
+      final params = getWebAuthParams();
+      if (params.isEmpty) return false;
+
+      // Case A: User cancelled or provider denied authentication
+      if (params.containsKey('error') || params.containsKey('error_description')) {
+        final errorMsg = params['error_description'] ?? params['error'] ?? 'Authentication failed';
+        _errorMessage = 'Google sign-in was not completed: $errorMsg';
+        debugPrint('[AuthProvider] Google OAuth callback error: $errorMsg');
+        cleanWebAuthUrl();
+        notifyListeners();
+        return true;
+      }
+
+      // Case B: Implicit grant access_token received from Supabase OAuth
+      if (params.containsKey('access_token')) {
+        final accessToken = params['access_token']!;
+        debugPrint('[AuthProvider] Validating Google OAuth access token with Supabase...');
+        cleanWebAuthUrl();
+
+        final verifiedData = await _apiService.verifyGoogleAccessToken(accessToken);
+        if (verifiedData['user'] != null) {
+          final u = verifiedData['user'];
+          final account = UserAccount(
+            id: u['id']?.toString() ?? 'CIT-GOOG',
+            name: u['name']?.toString() ?? 'Google User',
+            email: u['email']?.toString() ?? '',
+            role: u['role']?.toString() ?? 'citizen',
+            provider: 'google',
+            token: verifiedData['token']?.toString() ?? accessToken,
+            avatarUrl: u['avatarUrl']?.toString(),
+          );
+          await _persistSession(account);
+          _currentUser = account;
+          _successMessage = 'Signed in successfully via Google as ${account.name}';
+          debugPrint('[AuthProvider] Real Google OAuth session established for ${account.name} (${account.email})');
+          notifyListeners();
+          return true;
+        }
+      }
+
+      // Case C: PKCE authorization code received from Supabase OAuth
+      if (params.containsKey('code')) {
+        final code = params['code']!;
+        debugPrint('[AuthProvider] Exchanging Google OAuth authorization code for session...');
+        cleanWebAuthUrl();
+
+        final verifiedData = await _apiService.exchangeAuthCode(code);
+        if (verifiedData['user'] != null) {
+          final u = verifiedData['user'];
+          final account = UserAccount(
+            id: u['id']?.toString() ?? 'CIT-GOOG',
+            name: u['name']?.toString() ?? 'Google User',
+            email: u['email']?.toString() ?? '',
+            role: u['role']?.toString() ?? 'citizen',
+            provider: 'google',
+            token: verifiedData['token']?.toString() ?? '',
+            avatarUrl: u['avatarUrl']?.toString(),
+          );
+          await _persistSession(account);
+          _currentUser = account;
+          _successMessage = 'Signed in successfully via Google as ${account.name}';
+          debugPrint('[AuthProvider] Real Google OAuth session established for ${account.name} (${account.email})');
+          notifyListeners();
+          return true;
+        }
+      }
+    } catch (e) {
+      _errorMessage = 'Failed to validate Google authentication: ${_cleanErrorMessage(e.toString())}';
+      debugPrint('[AuthProvider] Web OAuth callback processing error: $e');
+      cleanWebAuthUrl();
+      notifyListeners();
+      return true;
+    }
+    return false;
   }
 
   Future<void> _verifySessionWithServer(String token) async {
@@ -210,7 +300,7 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
-  /// 3. Continue with Google Authentication (Supabase OAuth)
+  /// 3. Continue with Google Authentication (Real Supabase OAuth Flow)
   Future<bool> signInWithGoogle() async {
     _isLoading = true;
     _errorMessage = null;
@@ -219,51 +309,35 @@ class AuthProvider extends ChangeNotifier {
 
     try {
       final currentOrigin = getCurrentWebOrigin();
+      final redirectDestination = currentOrigin.endsWith('/') ? currentOrigin : '$currentOrigin/';
 
-      final oauthUrl = await _apiService.getGoogleOAuthUrl(redirectTo: currentOrigin);
+      final oauthUrl = await _apiService.getGoogleOAuthUrl(redirectTo: redirectDestination);
 
-      if (oauthUrl != null && oauthUrl.isNotEmpty) {
-        if (kIsWeb) {
-          // On Web, redirect to Supabase Google OAuth URL
-          openUrlInBrowser(oauthUrl);
-          return true;
-        } else {
-          // Fallback on native platforms
-          final demoGoogleAccount = UserAccount(
-            id: 'CIT-GOOG-889',
-            name: 'Srijan Verma',
-            email: 'srijan.verma@gmail.com',
-            role: 'citizen',
-            provider: 'google',
-            token: 'token_google_oauth_verified',
-          );
-          await _persistSession(demoGoogleAccount);
-          _currentUser = demoGoogleAccount;
-          _isLoading = false;
-          _successMessage = 'Signed in with Google as ${demoGoogleAccount.name}';
-          notifyListeners();
-          return true;
-        }
+      if (oauthUrl.isEmpty) {
+        throw Exception('Supabase could not generate a Google OAuth URL. Please check Google Provider settings in your Supabase Dashboard.');
+      }
+
+      if (kIsWeb) {
+        // Web: Real browser navigation to Supabase -> Google OAuth account chooser
+        debugPrint('[AuthProvider] Launching real Google OAuth URL: $oauthUrl');
+        openUrlInBrowser(oauthUrl);
+        return false;
       } else {
-        // High fidelity fallback for local environments without public redirect URI
-        final fallbackGoogleAccount = UserAccount(
-          id: 'CIT-GOOG-772',
-          name: 'Srijan Verma',
-          email: 'srijan.verma@gmail.com',
-          role: 'citizen',
-          provider: 'google',
-          token: 'token_google_simulated',
-        );
-        await _persistSession(fallbackGoogleAccount);
-        _currentUser = fallbackGoogleAccount;
+        // Native platforms: launch in external browser
+        final uri = Uri.parse(oauthUrl);
+        final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+        if (!launched) {
+          throw Exception('Unable to open system browser for Google Sign-In.');
+        }
         _isLoading = false;
-        _successMessage = 'Signed in successfully via Google Authentication';
+        _successMessage = 'Google Sign-In opened in your browser. Please authorize and return.';
         notifyListeners();
-        return true;
+        return false;
       }
     } catch (e) {
       _isLoading = false;
-      _errorMessage = 'Google authentication encountered an issue: ${_cleanErrorMessage(e.toString())}';
+      _errorMessage = _cleanErrorMessage(e.toString());
+      debugPrint('[AuthProvider] Google Sign-In error: $e');
       notifyListeners();
       return false;
     }
@@ -339,9 +413,16 @@ class AuthProvider extends ChangeNotifier {
   }
 
   String _cleanErrorMessage(String err) {
+    if (err.contains('Failed to fetch') ||
+        err.contains('Connection refused') ||
+        err.contains('SocketException')) {
+      return 'Unable to reach local backend server (http://localhost:5000). Please ensure backend is running.';
+    }
     return err
+        .replaceAll('ClientException: ', '')
         .replaceAll('Exception: ', '')
         .replaceAll('Failed to fetch:', '')
+        .replaceAll('Failed to fetch', '')
         .trim();
   }
 }

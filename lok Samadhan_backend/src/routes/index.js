@@ -6,6 +6,7 @@ const aiRoutes = require('./aiRoutes');
 const mapsRoutes = require('./mapsRoutes');
 const departmentRoutes = require('./departmentRoutes');
 const authRoutes = require('./authRoutes');
+const rewardsRoutes = require('./rewardsRoutes');
 
 const { getDatabaseMode } = require('../config/database');
 const config = require('../config/env');
@@ -32,5 +33,6 @@ router.use('/ai', aiRoutes);
 router.use('/maps', mapsRoutes);
 router.use('/departments', departmentRoutes);
 router.use('/auth', authRoutes);
+router.use('/rewards', rewardsRoutes);
 
 module.exports = router;

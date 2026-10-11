@@ -5,7 +5,7 @@ const { DEPARTMENTS, getDepartmentByCategory } = require('../constants/departmen
 class AIService {
   constructor() {
     this.genAI = null;
-    this.modelName = config.gemini.model || 'gemini-2.0-flash';
+    this.modelName = config.gemini.model || 'gemini-3.8-flash';
 
     if (config.gemini.apiKey) {
       try {
@@ -61,7 +61,7 @@ class AIService {
   async analyzeCivicImage(imageBufferOrBase64, mimeType = 'image/jpeg', description = '') {
     if (this.genAI) {
       try {
-        const model = this.genAI.getGenerativeModel({ model: 'gemini-2.0-flash' });
+        const model = this.genAI.getGenerativeModel({ model: this.modelName });
         const prompt = `You are a Municipal Civil Infrastructure AI Inspector for the Lok Samadhan Government Platform.
 Analyze this civic issue photograph alongside citizen description: "${description}".
 Provide a concise 2-sentence technical assessment:
@@ -137,8 +137,11 @@ Draft a 3-part official redressal response:
     }
 
     const dept = getDepartmentByCategory(grievance.departmentCategory);
+    const coordsText = (grievance.latitude && grievance.longitude)
+      ? `${grievance.latitude}, ${grievance.longitude}`
+      : 'Area on file';
     return {
-      suggestion: `**Immediate Action Plan:**\n1. Dispatch field inspection squad under Junior Engineer / Nodal Officer.\n2. Verify site coordinates (${grievance.latitude}, ${grievance.longitude}) and issue on-ground work order.\n\n**Standard SOP Timeline:**\nResolution target: ${dept.defaultSlaHours} hours as per Citizen Charter.\n\n**Draft Citizen Notification:**\n"Dear Citizen, your complaint ${grievance.id} regarding ${dept.nameEn} has been dispatched to the field team for immediate resolution. (प्रिय नागरिक, आपकी शिकायत पर त्वरित कार्रवाई हेतु दल रवाना कर दिया गया है।)"`,
+      suggestion: `**Immediate Action Plan:**\n1. Dispatch field inspection squad under Junior Engineer / Nodal Officer.\n2. Verify site coordinates (${coordsText}) and issue on-ground work order.\n\n**Standard SOP Timeline:**\nResolution target: ${dept.defaultSlaHours} hours as per Citizen Charter.\n\n**Draft Citizen Notification:**\n"Dear Citizen, your complaint ${grievance.id} regarding ${dept.nameEn} has been dispatched to the field team for immediate resolution. (प्रिय नागरिक, आपकी शिकायत पर त्वरित कार्रवाई हेतु दल रवाना कर दिया गया है।)"`,
       generatedAt: new Date().toISOString()
     };
   }

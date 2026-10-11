@@ -147,7 +147,26 @@ class SupabaseService {
     if (mode === 'supabase' && supabaseClient) {
       try {
         const dbPayload = this._mapToDb(record);
-        const { error } = await supabaseClient.from('grievances').insert(dbPayload);
+        let { error } = await supabaseClient.from('grievances').insert(dbPayload);
+        
+        // If Supabase schema does not yet have gps_accuracy_m or image verification columns, retry without them
+        if (error && (error.code === 'PGRST204' || error.message.includes('column'))) {
+          const safePayload = { ...dbPayload };
+          delete safePayload.gps_accuracy_m;
+          delete safePayload.location_captured_at;
+          delete safePayload.image_verification_status;
+          delete safePayload.image_civic_category;
+          delete safePayload.image_confidence_score;
+          delete safePayload.image_authenticity_status;
+          delete safePayload.image_authenticity_details;
+          delete safePayload.image_detector_info;
+          delete safePayload.image_verified_at;
+          delete safePayload.exif_gps_latitude;
+          delete safePayload.exif_gps_longitude;
+          const retryRes = await supabaseClient.from('grievances').insert(safePayload);
+          error = retryRes.error;
+        }
+
         if (error) throw error;
 
         // Insert initial audit logs
@@ -271,6 +290,33 @@ class SupabaseService {
 
   _mapFromDb(row) {
     if (!row) return null;
+    const lat = (row.latitude !== null && row.latitude !== undefined && !isNaN(parseFloat(row.latitude)))
+      ? parseFloat(row.latitude)
+      : null;
+    const lon = (row.longitude !== null && row.longitude !== undefined && !isNaN(parseFloat(row.longitude)))
+      ? parseFloat(row.longitude)
+      : null;
+    let parsedAccuracy = (row.gps_accuracy_m !== null && row.gps_accuracy_m !== undefined && !isNaN(parseFloat(row.gps_accuracy_m)))
+      ? parseFloat(row.gps_accuracy_m)
+      : null;
+
+    const auditLogs = (row.grievance_audit_logs || row.auditLog || []).map((a) => ({
+      timestamp: a.timestamp,
+      statusLabel: a.status_label || a.statusLabel,
+      actor: a.actor,
+      description: a.description
+    }));
+
+    if (parsedAccuracy === null) {
+      for (const log of auditLogs) {
+        const match = log.description && log.description.match(/Accuracy:\s*±?(\d+(\.\d+)?)m/i);
+        if (match) {
+          parsedAccuracy = parseFloat(match[1]);
+          break;
+        }
+      }
+    }
+
     return {
       id: row.id,
       citizenPhone: row.citizen_phone || row.citizenPhone,
@@ -283,10 +329,27 @@ class SupabaseService {
       block: row.block,
       district: row.district,
       state: row.state,
-      latitude: parseFloat(row.latitude) || 25.5941,
-      longitude: parseFloat(row.longitude) || 85.1376,
+      latitude: lat,
+      longitude: lon,
+      gpsAccuracyM: parsedAccuracy,
+      locationCapturedAt: row.location_captured_at || row.created_at || row.createdAt,
       photoUrl: row.photo_url || row.photoUrl || null,
       photoAnalysisSummary: row.photo_analysis_summary || row.photoAnalysisSummary || null,
+      imageVerificationStatus: row.image_verification_status || row.imageVerificationStatus || (row.photo_url || row.photoUrl ? 'unverified' : null),
+      imageCivicCategory: row.image_civic_category || row.imageCivicCategory || null,
+      imageConfidenceScore: (row.image_confidence_score !== undefined && row.image_confidence_score !== null)
+        ? parseFloat(row.image_confidence_score)
+        : (row.imageConfidenceScore !== undefined ? parseFloat(row.imageConfidenceScore) : null),
+      imageAuthenticityStatus: row.image_authenticity_status || row.imageAuthenticityStatus || (row.photo_url || row.photoUrl ? 'unavailable' : null),
+      imageAuthenticityDetails: row.image_authenticity_details || row.imageAuthenticityDetails || null,
+      imageDetectorInfo: row.image_detector_info || row.imageDetectorInfo || null,
+      imageVerifiedAt: row.image_verified_at || row.imageVerifiedAt || null,
+      exifGpsLatitude: (row.exif_gps_latitude !== undefined && row.exif_gps_latitude !== null)
+        ? parseFloat(row.exif_gps_latitude)
+        : (row.exifGpsLatitude !== undefined ? parseFloat(row.exifGpsLatitude) : null),
+      exifGpsLongitude: (row.exif_gps_longitude !== undefined && row.exif_gps_longitude !== null)
+        ? parseFloat(row.exif_gps_longitude)
+        : (row.exifGpsLongitude !== undefined ? parseFloat(row.exifGpsLongitude) : null),
       urgency: row.urgency,
       aiConfidenceScore: parseFloat(row.ai_confidence_score || row.aiConfidenceScore) || 0.9,
       status: row.status,
@@ -299,12 +362,7 @@ class SupabaseService {
       escalationLevel: parseInt(row.escalation_level ?? row.escalationLevel, 10) || 0,
       assignedOfficerId: row.assigned_officer_id || row.assignedOfficerId || null,
       assignedOfficerName: row.assigned_officer_name || row.assignedOfficerName || null,
-      auditLog: (row.grievance_audit_logs || row.auditLog || []).map((a) => ({
-        timestamp: a.timestamp,
-        statusLabel: a.status_label || a.statusLabel,
-        actor: a.actor,
-        description: a.description
-      }))
+      auditLog: auditLogs
     };
   }
 
@@ -323,8 +381,19 @@ class SupabaseService {
     if (obj.state !== undefined) mapped.state = obj.state;
     if (obj.latitude !== undefined) mapped.latitude = obj.latitude;
     if (obj.longitude !== undefined) mapped.longitude = obj.longitude;
+    if (obj.gpsAccuracyM !== undefined && obj.gpsAccuracyM !== null) mapped.gps_accuracy_m = obj.gpsAccuracyM;
+    if (obj.locationCapturedAt !== undefined && obj.locationCapturedAt !== null) mapped.location_captured_at = obj.locationCapturedAt;
     if (obj.photoUrl !== undefined) mapped.photo_url = obj.photoUrl;
     if (obj.photoAnalysisSummary !== undefined) mapped.photo_analysis_summary = obj.photoAnalysisSummary;
+    if (obj.imageVerificationStatus !== undefined) mapped.image_verification_status = obj.imageVerificationStatus;
+    if (obj.imageCivicCategory !== undefined) mapped.image_civic_category = obj.imageCivicCategory;
+    if (obj.imageConfidenceScore !== undefined && obj.imageConfidenceScore !== null) mapped.image_confidence_score = obj.imageConfidenceScore;
+    if (obj.imageAuthenticityStatus !== undefined) mapped.image_authenticity_status = obj.imageAuthenticityStatus;
+    if (obj.imageAuthenticityDetails !== undefined) mapped.image_authenticity_details = obj.imageAuthenticityDetails;
+    if (obj.imageDetectorInfo !== undefined) mapped.image_detector_info = obj.imageDetectorInfo;
+    if (obj.imageVerifiedAt !== undefined && obj.imageVerifiedAt !== null) mapped.image_verified_at = obj.imageVerifiedAt;
+    if (obj.exifGpsLatitude !== undefined && obj.exifGpsLatitude !== null) mapped.exif_gps_latitude = obj.exifGpsLatitude;
+    if (obj.exifGpsLongitude !== undefined && obj.exifGpsLongitude !== null) mapped.exif_gps_longitude = obj.exifGpsLongitude;
     if (obj.urgency !== undefined) mapped.urgency = obj.urgency;
     if (obj.aiConfidenceScore !== undefined) mapped.ai_confidence_score = obj.aiConfidenceScore;
     if (obj.status !== undefined) mapped.status = obj.status;

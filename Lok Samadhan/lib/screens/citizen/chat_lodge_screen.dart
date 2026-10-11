@@ -11,6 +11,8 @@ import '../../providers/language_provider.dart';
 import '../../providers/location_provider.dart';
 import '../../theme/app_colors.dart';
 import '../../widgets/confidence_badge.dart';
+import '../../providers/rewards_provider.dart';
+import '../../widgets/rewards/gc_reward_dialog.dart';
 
 class ChatLodgeScreen extends StatefulWidget {
   final void Function(String ticketId)? onTrackGrievance;
@@ -38,7 +40,17 @@ class _ChatLodgeScreenState extends State<ChatLodgeScreen> {
   void initState() {
     super.initState();
     _initSpeech();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _scrollToBottom();
+        final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+        chatProvider.onRewardAwarded = (award) {
+          if (mounted && award.success) {
+            GcRewardDialog.show(context, award);
+          }
+        };
+      }
+    });
   }
 
   Future<void> _initSpeech() async {
@@ -105,11 +117,13 @@ class _ChatLodgeScreenState extends State<ChatLodgeScreen> {
     final chatProvider = Provider.of<ChatProvider>(context, listen: false);
     final grievanceProvider = Provider.of<GrievanceProvider>(context, listen: false);
     final locationProvider = Provider.of<LocationProvider>(context, listen: false);
+    final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
 
     chatProvider.sendMessage(
       text,
       grievanceProvider: grievanceProvider,
       locationProvider: locationProvider,
+      rewardsProvider: rewardsProvider,
     );
 
     _textController.clear();
@@ -123,6 +137,10 @@ class _ChatLodgeScreenState extends State<ChatLodgeScreen> {
 
   @override
   void dispose() {
+    try {
+      final chatProvider = Provider.of<ChatProvider>(context, listen: false);
+      chatProvider.onRewardAwarded = null;
+    } catch (_) {}
     _textController.dispose();
     _scrollController.dispose();
     if (_speech.isListening) {
@@ -521,10 +539,17 @@ class _ChatLodgeScreenState extends State<ChatLodgeScreen> {
                             color: Colors.white,
                           ),
                         ),
-                        onPressed: () {
-                          chatProvider.confirmAndLodge(
+                        onPressed: () async {
+                          final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
+                          await chatProvider.confirmAndLodge(
                             grievanceProvider: grievanceProvider,
                             locationProvider: locationProvider,
+                            rewardsProvider: rewardsProvider,
+                            onRewardAwarded: (award) {
+                              if (context.mounted && award.success) {
+                                GcRewardDialog.show(context, award);
+                              }
+                            },
                           );
                           Future.delayed(const Duration(milliseconds: 300), _scrollToBottom);
                         },

@@ -185,6 +185,13 @@ function renderTable(grievances) {
           <a href="javascript:void(0)" onclick="window.viewGrievanceDetail('${g.id}')" class="ticket-code">
             ${g.id}
           </a>
+          ${g.photoUrl ? `
+            <div style="margin-top:3px;">
+              <span class="badge" style="font-size:10px; padding:2px 5px; border-radius:4px; font-weight:600; ${g.imageVerificationStatus === 'verified_civic_issue' ? 'background:rgba(16,185,129,0.18); color:#10B981;' : (g.imageVerificationStatus === 'flagged_manual_review' ? 'background:rgba(245,158,11,0.18); color:#F59E0B;' : 'background:rgba(239,68,68,0.18); color:#EF4444;')}">
+                <i class="bi bi-camera"></i> ${g.imageVerificationStatus === 'verified_civic_issue' ? 'Verified' : (g.imageVerificationStatus === 'flagged_manual_review' ? 'Flagged' : 'Photo')}
+              </span>
+            </div>
+          ` : ''}
         </td>
         <td>
           <div style="font-weight:600;">${escapeHtml(g.citizenName)}</div>
@@ -347,6 +354,26 @@ async function detectHotspots() {
 // ==========================================================================
 // 6. Action Handlers (View Detail, Quick Resolve, Quick Escalate)
 // ==========================================================================
+const formatKolkataTime = (timestamp) => {
+  if (!timestamp) return "Time unavailable";
+
+  const date = new Date(timestamp);
+
+  if (Number.isNaN(date.getTime())) {
+    return "Invalid date";
+  }
+
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  }).format(date);
+};
+
 window.viewGrievanceDetail = async function (id) {
   try {
     const res = await fetch(`/api/grievances/${id}`);
@@ -361,11 +388,94 @@ window.viewGrievanceDetail = async function (id) {
     const timelineHtml = (g.auditLog || []).map(step => `
       <div class="timeline-item">
         <div class="timeline-dot"></div>
-        <div class="timeline-header">${escapeHtml(step.statusLabel)} &bull; <span class="timeline-time">${new Date(step.timestamp).toLocaleString()}</span></div>
+        <div class="timeline-header">${escapeHtml(step.statusLabel)} &bull; <span class="timeline-time">${formatKolkataTime(step.timestamp)}</span></div>
         <div class="timeline-desc"><strong>Actor:</strong> ${escapeHtml(step.actor)}</div>
         <div class="timeline-desc">${escapeHtml(step.description)}</div>
       </div>
     `).join('');
+
+    const hasGps = g.latitude !== null && g.latitude !== undefined && g.longitude !== null && g.longitude !== undefined;
+    const latDir = g.latitude >= 0 ? 'N' : 'S';
+    const lonDir = g.longitude >= 0 ? 'E' : 'W';
+    const gpsCoordsText = hasGps
+      ? `${Math.abs(g.latitude).toFixed(4)}° ${latDir}, ${Math.abs(g.longitude).toFixed(4)}° ${lonDir}`
+      : 'Location not available';
+    const accuracyBadge = (hasGps && g.gpsAccuracyM)
+      ? ` &bull; <span style="color:#10B981; font-weight:700;">±${Math.round(g.gpsAccuracyM)}m</span>`
+      : '';
+    const mapBtn = hasGps
+      ? `<a href="https://www.openstreetmap.org/?mlat=${g.latitude}&mlon=${g.longitude}#map=16/${g.latitude}/${g.longitude}" target="_blank" rel="noopener noreferrer" style="display:inline-flex; align-items:center; gap:4px; font-size:11px; color:#38bdf8; text-decoration:none; margin-top:3px;"><i class="bi bi-box-arrow-up-right"></i> View on OpenStreetMap</a>`
+      : '';
+
+    // Image Verification & Authenticity Card
+    let imageAuditHtml = '';
+    if (g.photoUrl) {
+      const verifStatus = g.imageVerificationStatus || 'unverified';
+      const authStatus = g.imageAuthenticityStatus || 'unavailable';
+      const confScore = g.imageConfidenceScore ? `${Math.round(g.imageConfidenceScore * 100)}%` : 'N/A';
+      const authDetails = g.imageAuthenticityDetails || (authStatus === 'likely_authentic' ? 'No strong evidence of AI generation or manipulation was detected. This does not guarantee that the image is authentic.' : (authStatus === 'suspicious_manipulation' ? 'Signals associated with synthetic content or AI generator metadata detected.' : 'Authenticity detector not configured in backend environment.'));
+
+      const verifBadgeStyle = verifStatus === 'verified_civic_issue'
+        ? 'background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3);'
+        : (verifStatus === 'flagged_manual_review'
+          ? 'background:rgba(245,158,11,0.15); color:#F59E0B; border:1px solid rgba(245,158,11,0.3);'
+          : 'background:rgba(239,68,68,0.15); color:#EF4444; border:1px solid rgba(239,68,68,0.3);');
+
+      const authBadgeStyle = authStatus === 'likely_authentic'
+        ? 'background:rgba(16,185,129,0.15); color:#10B981; border:1px solid rgba(16,185,129,0.3);'
+        : (authStatus === 'suspicious_manipulation'
+          ? 'background:rgba(239,68,68,0.15); color:#EF4444; border:1px solid rgba(239,68,68,0.3);'
+          : 'background:rgba(148,163,184,0.15); color:#94A3B8; border:1px solid rgba(148,163,184,0.3);');
+
+      const authLabel = authStatus === 'likely_authentic'
+        ? 'Likely Authentic / No AI Evidence Found'
+        : (authStatus === 'suspicious_manipulation'
+          ? '⚠️ Potentially AI-Generated or Manipulated'
+          : (authStatus === 'inconclusive' ? 'Unable to Determine' : 'Authenticity Check Unavailable'));
+
+      const exifGpsText = (g.exifGpsLatitude && g.exifGpsLongitude)
+        ? `📍 EXIF GPS in Photo: ${Math.abs(g.exifGpsLatitude).toFixed(4)}° ${g.exifGpsLatitude >= 0 ? 'N' : 'S'}, ${Math.abs(g.exifGpsLongitude).toFixed(4)}° ${g.exifGpsLongitude >= 0 ? 'E' : 'W'} (Optional Metadata Reference)`
+        : 'Photo File EXIF GPS: None recorded in photo file (Device submission GPS is authoritative)';
+
+      imageAuditHtml = `
+        <div style="background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 1rem; margin-bottom: 1.25rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <h4 style="margin:0; font-size:13px; color:#38bdf8; display:flex; align-items:center; gap:6px;">
+              <i class="bi bi-shield-check"></i> AI Image Verification & Authenticity Audit
+            </h4>
+            <div style="display:flex; gap:6px;">
+              <span style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700; ${verifBadgeStyle}">
+                ${verifStatus.replace(/_/g, ' ').toUpperCase()}
+              </span>
+              <span style="font-size:11px; padding:3px 8px; border-radius:6px; font-weight:700; ${authBadgeStyle}">
+                ${authStatus.replace(/_/g, ' ').toUpperCase()}
+              </span>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns: 140px 1fr; gap:12px; align-items:start;">
+            <div>
+              <img src="${escapeHtml(g.photoUrl)}" alt="Complaint Photo" style="width:140px; height:110px; object-fit:cover; border-radius:8px; border:1px solid rgba(255,255,255,0.2);">
+            </div>
+            <div style="font-size:12px; line-height:1.6;">
+              <div><strong>Detected Civic Issue:</strong> ${formatCategory(g.imageCivicCategory || g.departmentCategory)}</div>
+              <div><strong>Civic Relevance:</strong> ${verifStatus === 'verified_civic_issue' ? '<span style="color:#10B981; font-weight:600;">Relevant (Civic Problem Confirmed)</span>' : '<span style="color:#F59E0B; font-weight:600;">Pending / Under Review</span>'}</div>
+              <div><strong>Confidence Score:</strong> ${confScore}</div>
+              <div><strong>Authenticity Verdict:</strong> ${authLabel}</div>
+              <div class="text-dim" style="font-size:11px; margin-top:3px;">"${escapeHtml(authDetails)}"</div>
+              <div class="text-dim" style="font-size:11px; margin-top:2px;"><strong>Detector:</strong> ${escapeHtml(g.imageDetectorInfo || 'Lok Samadhan AI Sentinel v2.0')}</div>
+              <div style="font-size:10.5px; color:#cbd5e1; margin-top:4px; font-family:monospace;">${exifGpsText}</div>
+            </div>
+          </div>
+
+          <div style="margin-top:10px; padding-top:8px; border-top:1px solid rgba(255,255,255,0.08); display:flex; justify-content:flex-end; gap:8px;">
+            <button onclick="window.flagImageReview('${g.id}')" style="background:rgba(245,158,11,0.2); border:1px solid #F59E0B; color:#FBBF24; padding:5px 12px; border-radius:6px; font-size:11.5px; cursor:pointer; font-weight:600;">
+              <i class="bi bi-flag-fill"></i> Flag Image for Manual Review
+            </button>
+          </div>
+        </div>
+      `;
+    }
 
     document.getElementById('modal-detail-body').innerHTML = `
       <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;">
@@ -378,15 +488,18 @@ window.viewGrievanceDetail = async function (id) {
           <div style="font-weight:600;">${formatCategory(g.departmentCategory)} &bull; ${g.urgency.toUpperCase()}</div>
         </div>
         <div>
-          <div class="text-dim">Location (OpenStreetMap)</div>
-          <div>${escapeHtml(g.villageWard)}, ${escapeHtml(g.district)}, ${escapeHtml(g.state)}</div>
-          <div class="text-dim" style="font-size:11px;">GPS: ${g.latitude.toFixed(4)}, ${g.longitude.toFixed(4)}</div>
+          <div class="text-dim">Authoritative Device GPS Location</div>
+          <div style="font-weight:600; font-family:monospace; font-size:12.5px;">${gpsCoordsText}${accuracyBadge}</div>
+          <div class="text-dim" style="font-size:11px;">Area: ${escapeHtml(g.villageWard || 'N/A')}, ${escapeHtml(g.district || '')}</div>
+          ${mapBtn}
         </div>
         <div>
           <div class="text-dim">SLA Expiry Target</div>
-          <div>${new Date(g.dueDate).toLocaleString()} (${g.isSlaBreached ? '⚠️ BREACHED' : g.remainingSlaHours + 'h left'})</div>
+          <div>${formatKolkataTime(g.dueDate)} (${g.isSlaBreached ? '⚠️ BREACHED' : g.remainingSlaHours + 'h left'})</div>
         </div>
       </div>
+
+      ${imageAuditHtml}
 
       <div style="background: rgba(0,0,0,0.3); padding: 0.85rem; border-radius: 8px; margin-bottom: 1.25rem;">
         <div class="text-dim" style="font-size:11px; margin-bottom: 4px;">RAW CITIZEN COMPLAINT (${escapeHtml(g.spokenDialect)}):</div>
@@ -404,6 +517,31 @@ window.viewGrievanceDetail = async function (id) {
     document.getElementById('detail-modal').style.display = 'flex';
   } catch (err) {
     showToast('Failed to load grievance details: ' + err.message, 'error');
+  }
+};
+
+window.flagImageReview = async function (id) {
+  const note = prompt('Enter manual forensic review note for this complaint image:', 'Officer flagged image: on-site physical inspection required to verify reported issue.');
+  if (note === null) return;
+
+  try {
+    const res = await fetch(`/api/grievances/${id}/flag-review`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        verificationStatus: 'flagged_manual_review',
+        note,
+        officerName: 'Desk Nodal Officer'
+      })
+    });
+    const result = await res.json();
+    if (!result.success) throw new Error(result.message);
+
+    showToast(`Complaint ${id} flagged for image manual review.`, 'warning');
+    await window.viewGrievanceDetail(id);
+    await refreshData();
+  } catch (err) {
+    showToast('Error flagging image: ' + err.message, 'error');
   }
 };
 
@@ -516,14 +654,29 @@ function setupEventListeners() {
     btn.disabled = true;
 
     try {
+      const latVal = document.getElementById('form-lat').value.trim();
+      const lonVal = document.getElementById('form-lon').value.trim();
+      let lat = null;
+      let lon = null;
+      if (latVal !== '') {
+        const pLat = parseFloat(latVal);
+        if (!isNaN(pLat) && pLat >= -90 && pLat <= 90) lat = pLat;
+      }
+      if (lonVal !== '') {
+        const pLon = parseFloat(lonVal);
+        if (!isNaN(pLon) && pLon >= -180 && pLon <= 180) lon = pLon;
+      }
+
       const payload = {
         citizenName: document.getElementById('form-citizen-name').value,
         citizenPhone: document.getElementById('form-citizen-phone').value,
         rawSpeechText: document.getElementById('form-speech-text').value,
         departmentCategory: document.getElementById('form-category').value || undefined,
         urgency: document.getElementById('form-urgency').value,
-        latitude: parseFloat(document.getElementById('form-lat').value) || 23.0225,
-        longitude: parseFloat(document.getElementById('form-lon').value) || 72.5714
+        latitude: lat,
+        longitude: lon,
+        gpsAccuracyM: window._lastCapturedGpsAccuracy || null,
+        locationCapturedAt: new Date().toISOString()
       };
 
       const res = await fetch('/api/grievances', {
@@ -538,6 +691,8 @@ function setupEventListeners() {
       showToast(`Complaint lodged successfully: ${result.data.id}`, 'success');
       document.getElementById('lodge-modal').style.display = 'none';
       document.getElementById('lodge-form').reset();
+      window._lastCapturedGpsAccuracy = null;
+      document.getElementById('osm-detected-addr').textContent = 'Tap to acquire live device GPS fix';
       await refreshData();
     } catch (err) {
       showToast('Error lodging grievance: ' + err.message, 'error');
@@ -549,31 +704,53 @@ function setupEventListeners() {
 
 function detectDeviceGPS() {
   const addrSpan = document.getElementById('osm-detected-addr');
-  if ('geolocation' in navigator) {
-    addrSpan.textContent = 'Fetching device GPS coordinates...';
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        const lat = pos.coords.latitude;
-        const lon = pos.coords.longitude;
-        document.getElementById('form-lat').value = lat.toFixed(4);
-        document.getElementById('form-lon').value = lon.toFixed(4);
-
-        // Reverse geocode via OpenStreetMap Nominatim
-        try {
-          const res = await fetch(`/api/maps/reverse-geocode?lat=${lat}&lng=${lon}`);
-          const geoData = await res.json();
-          if (geoData.success) {
-            addrSpan.textContent = `📍 ${geoData.data.villageWard}, ${geoData.data.district}, ${geoData.data.state}`;
-          }
-        } catch {
-          addrSpan.textContent = `GPS: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
-        }
-      },
-      (err) => {
-        addrSpan.textContent = 'GPS permission denied. Using default coordinates.';
-      }
-    );
+  if (!('geolocation' in navigator)) {
+    addrSpan.textContent = '⚠️ Geolocation is not supported by your browser.';
+    showToast('Geolocation is not supported by your browser.', 'error');
+    return;
   }
+
+  addrSpan.textContent = 'Acquiring high-accuracy live GPS satellite fix...';
+  navigator.geolocation.getCurrentPosition(
+    async (pos) => {
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const acc = pos.coords.accuracy;
+      window._lastCapturedGpsAccuracy = acc;
+
+      document.getElementById('form-lat').value = lat.toFixed(6);
+      document.getElementById('form-lon').value = lon.toFixed(6);
+      addrSpan.textContent = `📍 Captured: ${lat.toFixed(5)}°, ${lon.toFixed(5)}° (±${Math.round(acc)}m). Resolving address...`;
+
+      // Reverse geocode via OpenStreetMap Nominatim
+      try {
+        const res = await fetch(`/api/maps/reverse-geocode?lat=${lat}&lng=${lon}`);
+        const geoData = await res.json();
+        if (geoData.success) {
+          addrSpan.textContent = `📍 ${geoData.data.villageWard}, ${geoData.data.district}, ${geoData.data.state} (±${Math.round(acc)}m accuracy)`;
+        }
+      } catch {
+        addrSpan.textContent = `Live GPS Fix: ${lat.toFixed(5)}°, ${lon.toFixed(5)}° (±${Math.round(acc)}m)`;
+      }
+    },
+    (err) => {
+      let msg = 'Failed to acquire device GPS.';
+      if (err.code === 1) {
+        msg = 'Location permission denied. Please allow location access in your browser.';
+      } else if (err.code === 2) {
+        msg = 'Location position unavailable. Please ensure device GPS is turned on.';
+      } else if (err.code === 3) {
+        msg = 'GPS acquisition timed out. Please try again.';
+      }
+      addrSpan.textContent = '⚠️ ' + msg;
+      showToast(msg, 'error');
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 0
+    }
+  );
 }
 
 function applyFilters() {

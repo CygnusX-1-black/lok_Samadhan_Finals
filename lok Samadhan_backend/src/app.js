@@ -31,15 +31,15 @@ app.use(
 // Cross-Origin Resource Sharing
 app.use(
   cors({
-    origin: config.corsOrigin === '*' ? '*' : config.corsOrigin.split(','),
+    origin: '*',
     methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'x-user-id', 'Accept', 'Origin']
   })
 );
 
 // Body Parsers
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '30mb' }));
+app.use(express.urlencoded({ extended: true, limit: '30mb' }));
 
 // Logging
 if (config.isDev) {

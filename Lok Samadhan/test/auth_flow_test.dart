@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart';
-import 'package:sahayak_vaani/models/user_account.dart';
 import 'package:sahayak_vaani/providers/auth_provider.dart';
 import 'package:sahayak_vaani/providers/grievance_provider.dart';
 import 'package:sahayak_vaani/providers/language_provider.dart';
 import 'package:sahayak_vaani/providers/location_provider.dart';
 import 'package:sahayak_vaani/providers/voice_engine_provider.dart';
 import 'package:sahayak_vaani/providers/chat_provider.dart';
+import 'package:sahayak_vaani/providers/rewards_provider.dart';
 import 'package:sahayak_vaani/screens/home_navigation_screen.dart';
-import 'package:sahayak_vaani/widgets/auth/auth_modal.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 Widget createTestApp({AuthProvider? authProvider}) {
@@ -34,6 +33,9 @@ Widget createTestApp({AuthProvider? authProvider}) {
       ChangeNotifierProvider<ChatProvider>(
         create: (_) => ChatProvider(),
       ),
+      ChangeNotifierProvider<RewardsProvider>(
+        create: (_) => RewardsProvider(),
+      ),
     ],
     child: const MaterialApp(
       home: HomeNavigationScreen(),
@@ -57,7 +59,10 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     // Verify Sign In and Citizen button are present
-    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.byTooltip('Sign In'), findsOneWidget);
+    expect(find.byIcon(Icons.login_rounded), findsOneWidget);
+    expect(find.byTooltip('Rewards'), findsOneWidget);
+    expect(find.byIcon(Icons.card_giftcard_rounded), findsOneWidget);
     expect(find.text('Citizen'), findsOneWidget);
   });
 
@@ -71,8 +76,8 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
 
-    // Tap Sign In button
-    final signInButton = find.text('Sign In');
+    // Tap Sign In icon button
+    final signInButton = find.byTooltip('Sign In');
     await tester.tap(signInButton);
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 300));
@@ -135,6 +140,7 @@ void main() {
     await tester.pump(const Duration(seconds: 4));
 
     // Verify returned to unauthenticated Sign In state
-    expect(find.text('Sign In'), findsOneWidget);
+    expect(find.byTooltip('Sign In'), findsOneWidget);
+    expect(find.byIcon(Icons.login_rounded), findsOneWidget);
   });
 }

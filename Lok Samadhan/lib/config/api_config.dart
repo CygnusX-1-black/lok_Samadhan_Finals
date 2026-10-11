@@ -45,13 +45,18 @@ class ApiConfig {
       return _customBaseUrl!;
     }
 
-    // 1. Check dart-define
+    // 1. Web browser always connects to localhost:5000/api
+    if (kIsWeb) {
+      return 'http://localhost:5000/api';
+    }
+
+    // 2. Check dart-define
     const dartDefineUrl = String.fromEnvironment('API_BASE_URL');
     if (dartDefineUrl.isNotEmpty) {
       return dartDefineUrl;
     }
 
-    // 2. Check dotenv
+    // 3. Check dotenv
     if (dotenv.isInitialized) {
       final envUrl = dotenv.env['API_BASE_URL'];
       if (envUrl != null && envUrl.trim().isNotEmpty) {
@@ -59,11 +64,8 @@ class ApiConfig {
       }
     }
 
-    // 3. Smart platform defaults
-    if (kIsWeb) {
-      return 'http://localhost:5000/api';
-    } else if (defaultTargetPlatform == TargetPlatform.android) {
-      // Primary mobile Wi-Fi LAN IP for physical device
+    // 4. Platform defaults
+    if (defaultTargetPlatform == TargetPlatform.android) {
       return 'http://10.90.141.134:5000/api';
     } else {
       return 'http://localhost:5000/api';
@@ -82,8 +84,13 @@ class ApiConfig {
   static String get supabaseUrl =>
       (dotenv.isInitialized ? dotenv.env['SUPABASE_URL'] : null) ?? 'https://phkjucynruuqaxbgytrz.supabase.co';
 
-  static String get supabaseAnonKey =>
-      (dotenv.isInitialized ? dotenv.env['SUPABASE_ANON_KEY'] : null) ?? '';
+  static String get supabaseAnonKey {
+    if (dotenv.isInitialized) {
+      final key = dotenv.env['SUPABASE_ANON_KEY'];
+      if (key != null && key.trim().isNotEmpty) return key.trim();
+    }
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBoa2p1Y3lucnV1cWF4Ymd5dHJ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTEwOTI2NDUsImV4cCI6MjEwNjY2ODY0NX0.pLUArzOLD6BOK_jHjhfk0wCBXH263Df44XRHVIxzQAI';
+  }
 
   // REST API Endpoints
   static Uri get healthUri => Uri.parse('$baseUrl/health');
@@ -96,4 +103,15 @@ class ApiConfig {
   static Uri get departmentsUri => Uri.parse('$baseUrl/departments');
   static Uri reverseGeocodeUri(double lat, double lng) =>
       Uri.parse('$baseUrl/maps/reverse-geocode?lat=$lat&lng=$lng');
+
+  // Rewards System Endpoints
+  static Uri get rewardsCatalogueUri => Uri.parse('$baseUrl/rewards/catalogue');
+  static Uri rewardsBalanceUri([String? userId]) =>
+      Uri.parse(userId != null ? '$baseUrl/rewards/balance?userId=$userId' : '$baseUrl/rewards/balance');
+  static Uri get rewardsAwardUri => Uri.parse('$baseUrl/rewards/award');
+  static Uri get rewardsRedeemUri => Uri.parse('$baseUrl/rewards/redeem');
+  static Uri rewardsTransactionsUri([String? userId]) =>
+      Uri.parse(userId != null ? '$baseUrl/rewards/transactions?userId=$userId' : '$baseUrl/rewards/transactions');
+  static Uri rewardsClaimsUri([String? userId]) =>
+      Uri.parse(userId != null ? '$baseUrl/rewards/claims?userId=$userId' : '$baseUrl/rewards/claims');
 }

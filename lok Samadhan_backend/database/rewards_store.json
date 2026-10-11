@@ -1,0 +1,589 @@
+{
+  "rewardBalances": {
+    "default_citizen": {
+      "userId": "default_citizen",
+      "balance": 24,
+      "totalEarned": 24,
+      "totalRedeemed": 0,
+      "updatedAt": "2026-10-11T06:02:09.494Z"
+    },
+    "test_citizen_1791611909214": {
+      "userId": "test_citizen_1791611909214",
+      "balance": 2,
+      "totalEarned": 2,
+      "totalRedeemed": 0,
+      "updatedAt": "2026-10-11T06:02:09.494Z"
+    },
+    "test_citizen_1791612615482": {
+      "userId": "test_citizen_1791612615482",
+      "balance": 2,
+      "totalEarned": 2,
+      "totalRedeemed": 0,
+      "updatedAt": "2026-10-11T06:02:09.494Z"
+    },
+    "test_citizen_1791645814651": {
+      "userId": "test_citizen_1791645814651",
+      "balance": 2,
+      "totalEarned": 2,
+      "totalRedeemed": 0,
+      "updatedAt": "2026-10-11T06:02:09.494Z"
+    }
+  },
+  "complaintRewards": [
+    {
+      "id": "CWD-1791578915184-5169",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-34813",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-09T20:48:35.184Z"
+    },
+    {
+      "id": "CWD-1791578994640-4848",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-79672",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-09T20:49:54.640Z"
+    },
+    {
+      "id": "CWD-1791610971361-1185",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-85044",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T05:42:51.361Z"
+    },
+    {
+      "id": "CWD-1791611824788-7713",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-86250",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T05:57:04.788Z"
+    },
+    {
+      "id": "CWD-1791611909214-7268",
+      "userId": "test_citizen_1791611909214",
+      "complaintId": "LS-TEST-1791611909214-1",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T05:58:29.214Z"
+    },
+    {
+      "id": "CWD-1791611910689-6222",
+      "userId": "test_citizen_1791611909214",
+      "complaintId": "LS-TEST-1791611909214-2",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T05:58:30.689Z"
+    },
+    {
+      "id": "CWD-1791612615483-8063",
+      "userId": "test_citizen_1791612615482",
+      "complaintId": "LS-TEST-1791612615482-1",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T06:10:15.483Z"
+    },
+    {
+      "id": "CWD-1791612617412-9404",
+      "userId": "test_citizen_1791612615482",
+      "complaintId": "LS-TEST-1791612615482-2",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T06:10:17.412Z"
+    },
+    {
+      "id": "CWD-1791612634756-7408",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-41447",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T06:10:34.756Z"
+    },
+    {
+      "id": "CWD-1791612816490-2238",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-TEST999",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T06:13:36.490Z"
+    },
+    {
+      "id": "CWD-1791612973330-2808",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-88042",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T06:16:13.330Z"
+    },
+    {
+      "id": "CWD-1791613320070-1421",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-63345",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T06:22:00.070Z"
+    },
+    {
+      "id": "CWD-1791615001834-9852",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-74325",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T06:50:01.834Z"
+    },
+    {
+      "id": "CWD-1791616047508-4698",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-14887",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T07:07:27.509Z"
+    },
+    {
+      "id": "CWD-1791645814652-1547",
+      "userId": "test_citizen_1791645814651",
+      "complaintId": "LS-TEST-1791645814651-1",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T15:23:34.652Z"
+    },
+    {
+      "id": "CWD-1791645816476-5308",
+      "userId": "test_citizen_1791645814651",
+      "complaintId": "LS-TEST-1791645814651-2",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T15:23:36.476Z"
+    },
+    {
+      "id": "CWD-1791650664762-3259",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-76510",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T16:44:24.762Z"
+    },
+    {
+      "id": "CWD-1791651533849-2808",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-18901",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T16:58:53.849Z"
+    },
+    {
+      "id": "CWD-1791656648395-3362",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-31090",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T18:24:08.395Z"
+    },
+    {
+      "id": "CWD-1791657526210-9615",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-23069",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T18:38:46.210Z"
+    },
+    {
+      "id": "CWD-1791658572614-8932",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-35880",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T18:56:12.614Z"
+    },
+    {
+      "id": "CWD-1791660447639-9956",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-13679",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T19:27:27.639Z"
+    },
+    {
+      "id": "CWD-1791661047116-4713",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-58305",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T19:37:27.116Z"
+    },
+    {
+      "id": "CWD-1791661100534-8768",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-28631",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T19:38:20.534Z"
+    },
+    {
+      "id": "CWD-1791661647024-8044",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-80560",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T19:47:27.024Z"
+    },
+    {
+      "id": "CWD-1791662288646-5933",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-12350",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T19:58:08.646Z"
+    },
+    {
+      "id": "CWD-1791663120452-3329",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-76690",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T20:12:00.452Z"
+    },
+    {
+      "id": "CWD-1791664025983-1115",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-13985",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T20:27:05.983Z"
+    },
+    {
+      "id": "CWD-1791664097481-5224",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-61613",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-10T20:28:17.481Z"
+    },
+    {
+      "id": "CWD-1791696978353-1926",
+      "userId": "default_citizen",
+      "complaintId": "LS-2026-47540",
+      "coinsAwarded": 1,
+      "awardedAt": "2026-10-11T05:36:18.353Z"
+    }
+  ],
+  "rewardRedemptions": [],
+  "gcTransactions": [
+    {
+      "id": "TXN-EARN-1791696978353-7044",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-47540",
+      "referenceId": "LS-2026-47540",
+      "balanceAfter": 24,
+      "createdAt": "2026-10-11T05:36:18.353Z"
+    },
+    {
+      "id": "TXN-EARN-1791664097481-4892",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-61613",
+      "referenceId": "LS-2026-61613",
+      "balanceAfter": 23,
+      "createdAt": "2026-10-10T20:28:17.481Z"
+    },
+    {
+      "id": "TXN-EARN-1791664025983-4028",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-13985",
+      "referenceId": "LS-2026-13985",
+      "balanceAfter": 22,
+      "createdAt": "2026-10-10T20:27:05.983Z"
+    },
+    {
+      "id": "TXN-EARN-1791663120452-2485",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-76690",
+      "referenceId": "LS-2026-76690",
+      "balanceAfter": 21,
+      "createdAt": "2026-10-10T20:12:00.452Z"
+    },
+    {
+      "id": "TXN-EARN-1791662288646-2399",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-12350",
+      "referenceId": "LS-2026-12350",
+      "balanceAfter": 20,
+      "createdAt": "2026-10-10T19:58:08.646Z"
+    },
+    {
+      "id": "TXN-EARN-1791661647024-5675",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-80560",
+      "referenceId": "LS-2026-80560",
+      "balanceAfter": 19,
+      "createdAt": "2026-10-10T19:47:27.024Z"
+    },
+    {
+      "id": "TXN-EARN-1791661100534-7600",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-28631",
+      "referenceId": "LS-2026-28631",
+      "balanceAfter": 18,
+      "createdAt": "2026-10-10T19:38:20.534Z"
+    },
+    {
+      "id": "TXN-EARN-1791661047116-9189",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-58305",
+      "referenceId": "LS-2026-58305",
+      "balanceAfter": 17,
+      "createdAt": "2026-10-10T19:37:27.116Z"
+    },
+    {
+      "id": "TXN-EARN-1791660447639-6638",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Photo Complaint #LS-2026-13679",
+      "referenceId": "LS-2026-13679",
+      "balanceAfter": 16,
+      "createdAt": "2026-10-10T19:27:27.639Z"
+    },
+    {
+      "id": "TXN-EARN-1791658572614-4459",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-35880",
+      "referenceId": "LS-2026-35880",
+      "balanceAfter": 15,
+      "createdAt": "2026-10-10T18:56:12.614Z"
+    },
+    {
+      "id": "TXN-EARN-1791657526210-8455",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-23069",
+      "referenceId": "LS-2026-23069",
+      "balanceAfter": 14,
+      "createdAt": "2026-10-10T18:38:46.210Z"
+    },
+    {
+      "id": "TXN-EARN-1791656648395-4580",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-31090",
+      "referenceId": "LS-2026-31090",
+      "balanceAfter": 13,
+      "createdAt": "2026-10-10T18:24:08.395Z"
+    },
+    {
+      "id": "TXN-EARN-1791651533849-8680",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-18901",
+      "referenceId": "LS-2026-18901",
+      "balanceAfter": 12,
+      "createdAt": "2026-10-10T16:58:53.849Z"
+    },
+    {
+      "id": "TXN-EARN-1791650664762-3811",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-76510",
+      "referenceId": "LS-2026-76510",
+      "balanceAfter": 11,
+      "createdAt": "2026-10-10T16:44:24.762Z"
+    },
+    {
+      "id": "TXN-EARN-1791645816476-3555",
+      "userId": "test_citizen_1791645814651",
+      "type": "earned",
+      "amount": 1,
+      "description": "Test Complaint 2",
+      "referenceId": "LS-TEST-1791645814651-2",
+      "balanceAfter": 2,
+      "createdAt": "2026-10-10T15:23:36.476Z"
+    },
+    {
+      "id": "TXN-EARN-1791645814652-8029",
+      "userId": "test_citizen_1791645814651",
+      "type": "earned",
+      "amount": 1,
+      "description": "Test Complaint 1",
+      "referenceId": "LS-TEST-1791645814651-1",
+      "balanceAfter": 1,
+      "createdAt": "2026-10-10T15:23:34.652Z"
+    },
+    {
+      "id": "TXN-EARN-1791616047508-3393",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Chat Complaint #LS-2026-14887",
+      "referenceId": "LS-2026-14887",
+      "balanceAfter": 10,
+      "createdAt": "2026-10-10T07:07:27.509Z"
+    },
+    {
+      "id": "TXN-EARN-1791615001834-5017",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Chat Complaint #LS-2026-74325",
+      "referenceId": "LS-2026-74325",
+      "balanceAfter": 9,
+      "createdAt": "2026-10-10T06:50:01.834Z"
+    },
+    {
+      "id": "TXN-EARN-1791613320070-1614",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Chat Complaint #LS-2026-63345",
+      "referenceId": "LS-2026-63345",
+      "balanceAfter": 8,
+      "createdAt": "2026-10-10T06:22:00.070Z"
+    },
+    {
+      "id": "TXN-EARN-1791612973330-3445",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Chat Complaint #LS-2026-88042",
+      "referenceId": "LS-2026-88042",
+      "balanceAfter": 7,
+      "createdAt": "2026-10-10T06:16:13.330Z"
+    },
+    {
+      "id": "TXN-EARN-1791612816490-8355",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Test Complaint Reward",
+      "referenceId": "LS-2026-TEST999",
+      "balanceAfter": 6,
+      "createdAt": "2026-10-10T06:13:36.490Z"
+    },
+    {
+      "id": "TXN-EARN-1791612634756-6514",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-41447",
+      "referenceId": "LS-2026-41447",
+      "balanceAfter": 5,
+      "createdAt": "2026-10-10T06:10:34.756Z"
+    },
+    {
+      "id": "TXN-EARN-1791612617412-6951",
+      "userId": "test_citizen_1791612615482",
+      "type": "earned",
+      "amount": 1,
+      "description": "Test Complaint 2",
+      "referenceId": "LS-TEST-1791612615482-2",
+      "balanceAfter": 2,
+      "createdAt": "2026-10-10T06:10:17.412Z"
+    },
+    {
+      "id": "TXN-EARN-1791612615483-8222",
+      "userId": "test_citizen_1791612615482",
+      "type": "earned",
+      "amount": 1,
+      "description": "Test Complaint 1",
+      "referenceId": "LS-TEST-1791612615482-1",
+      "balanceAfter": 1,
+      "createdAt": "2026-10-10T06:10:15.483Z"
+    },
+    {
+      "id": "TXN-EARN-1791611910689-4418",
+      "userId": "test_citizen_1791611909214",
+      "type": "earned",
+      "amount": 1,
+      "description": "Test Complaint 2",
+      "referenceId": "LS-TEST-1791611909214-2",
+      "balanceAfter": 2,
+      "createdAt": "2026-10-10T05:58:30.689Z"
+    },
+    {
+      "id": "TXN-EARN-1791611909214-3018",
+      "userId": "test_citizen_1791611909214",
+      "type": "earned",
+      "amount": 1,
+      "description": "Test Complaint 1",
+      "referenceId": "LS-TEST-1791611909214-1",
+      "balanceAfter": 1,
+      "createdAt": "2026-10-10T05:58:29.214Z"
+    },
+    {
+      "id": "TXN-EARN-1791611824788-3707",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-86250",
+      "referenceId": "LS-2026-86250",
+      "balanceAfter": 4,
+      "createdAt": "2026-10-10T05:57:04.788Z"
+    },
+    {
+      "id": "TXN-EARN-1791610971361-8409",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Civic Complaint #LS-2026-85044",
+      "referenceId": "LS-2026-85044",
+      "balanceAfter": 3,
+      "createdAt": "2026-10-10T05:42:51.361Z"
+    },
+    {
+      "id": "TXN-EARN-1791578994640-7943",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Chat Complaint #LS-2026-79672",
+      "referenceId": "LS-2026-79672",
+      "balanceAfter": 2,
+      "createdAt": "2026-10-09T20:49:54.640Z"
+    },
+    {
+      "id": "TXN-EARN-1791578915184-7627",
+      "userId": "default_citizen",
+      "type": "earned",
+      "amount": 1,
+      "description": "Eligible Chat Complaint #LS-2026-34813",
+      "referenceId": "LS-2026-34813",
+      "balanceAfter": 1,
+      "createdAt": "2026-10-09T20:48:35.184Z"
+    }
+  ],
+  "rewardCatalogue": [
+    {
+      "id": "rew-flipkart-20",
+      "name": "Flipkart Discount Voucher",
+      "description": "Flat discount on your next shopping order across select electronics and fashion items.",
+      "cost": 20,
+      "category": "shopping",
+      "isDemo": true,
+      "isActive": true,
+      "statusLabel": "Available"
+    },
+    {
+      "id": "rew-amazon-20",
+      "name": "Amazon Discount Voucher",
+      "description": "Instant balance benefit for pantry essentials, household goods, and utility bills.",
+      "cost": 20,
+      "category": "shopping",
+      "isDemo": true,
+      "isActive": true,
+      "statusLabel": "Available"
+    },
+    {
+      "id": "rew-googleplay-50",
+      "name": "Google Play Store Redeem Code",
+      "description": "Digital credits for apps, books, movies, and developer tools on Google Play.",
+      "cost": 50,
+      "category": "entertainment",
+      "isDemo": true,
+      "isActive": true,
+      "statusLabel": "Available"
+    },
+    {
+      "id": "rew-lenskart-30",
+      "name": "Lenskart Voucher",
+      "description": "Prescription eyeglasses and polarized sunglasses discount voucher.",
+      "cost": 30,
+      "category": "health",
+      "isDemo": true,
+      "isActive": true,
+      "statusLabel": "Available"
+    }
+  ]
+}

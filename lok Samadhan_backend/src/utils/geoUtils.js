@@ -66,21 +66,24 @@ function filterWithinRadius(items, centerLat, centerLng, radiusKm = 5) {
 function clusterGrievances(grievances, clusterRadiusKm = 0.5) {
   const clusters = [];
   const visited = new Set();
+  const validGrievances = grievances.filter(
+    (g) => g.latitude !== null && g.latitude !== undefined && g.longitude !== null && g.longitude !== undefined
+  );
 
-  for (let i = 0; i < grievances.length; i++) {
-    if (visited.has(grievances[i].id)) continue;
+  for (let i = 0; i < validGrievances.length; i++) {
+    if (visited.has(validGrievances[i].id)) continue;
 
-    const cluster = [grievances[i]];
-    visited.add(grievances[i].id);
+    const cluster = [validGrievances[i]];
+    visited.add(validGrievances[i].id);
 
-    for (let j = i + 1; j < grievances.length; j++) {
-      if (visited.has(grievances[j].id)) continue;
+    for (let j = i + 1; j < validGrievances.length; j++) {
+      if (visited.has(validGrievances[j].id)) continue;
 
       const dist = calculateHaversineDistanceKm(
-        grievances[i].latitude,
-        grievances[i].longitude,
-        grievances[j].latitude,
-        grievances[j].longitude
+        validGrievances[i].latitude,
+        validGrievances[i].longitude,
+        validGrievances[j].latitude,
+        validGrievances[j].longitude
       );
 
       // If nearby and in the same department, group into cluster

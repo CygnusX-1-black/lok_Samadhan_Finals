@@ -14,6 +14,9 @@ router.get('/google-url', (req, res) => authController.getGoogleOAuthUrl(req, re
 // POST /api/auth/google-verify - Verify Google OAuth session token
 router.post('/google-verify', (req, res) => authController.googleVerify(req, res));
 
+// POST /api/auth/exchange-code - Exchange authorization code for session
+router.post('/exchange-code', (req, res) => authController.exchangeAuthCode(req, res));
+
 // POST /api/auth/forgot-password - Send password reset email via Supabase
 router.post('/forgot-password', (req, res) => authController.forgotPassword(req, res));
 

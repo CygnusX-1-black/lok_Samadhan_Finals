@@ -1,6 +1,7 @@
 const supabaseService = require('./supabaseService');
 const aiService = require('./aiService');
 const osmService = require('./osmService');
+const rewardsService = require('./rewardsService');
 const { getDepartmentByCategory } = require('../constants/departments');
 const { URGENCY_LEVELS } = require('../constants/statuses');
 
@@ -78,23 +79,55 @@ class GrievanceService {
       isHitl = aiResult.isHitlRequired || confidence < 0.75;
     }
 
-    // 2. OpenStreetMap reverse geocode if location details missing but coordinates provided
+    // 2. Authoritative GPS Coordinates validation & reverse geocoding
+    let lat = null;
+    let lon = null;
+    let gpsAccuracyM = null;
+    const locationCapturedAt = payload.locationCapturedAt || payload.location_captured_at || now.toISOString();
+
+    if (payload.latitude !== undefined && payload.latitude !== null && payload.latitude !== '') {
+      const parsedLat = parseFloat(payload.latitude);
+      if (!isNaN(parsedLat) && parsedLat >= -90 && parsedLat <= 90) {
+        lat = parsedLat;
+      }
+    }
+
+    if (payload.longitude !== undefined && payload.longitude !== null && payload.longitude !== '') {
+      const parsedLon = parseFloat(payload.longitude);
+      if (!isNaN(parsedLon) && parsedLon >= -180 && parsedLon <= 180) {
+        lon = parsedLon;
+      }
+    }
+
+    if (payload.gpsAccuracyM !== undefined && payload.gpsAccuracyM !== null && payload.gpsAccuracyM !== '') {
+      const parsedAcc = parseFloat(payload.gpsAccuracyM);
+      if (!isNaN(parsedAcc) && parsedAcc >= 0) {
+        gpsAccuracyM = parsedAcc;
+      }
+    } else if (payload.gps_accuracy_m !== undefined && payload.gps_accuracy_m !== null && payload.gps_accuracy_m !== '') {
+      const parsedAcc = parseFloat(payload.gps_accuracy_m);
+      if (!isNaN(parsedAcc) && parsedAcc >= 0) {
+        gpsAccuracyM = parsedAcc;
+      }
+    }
+
     let villageWard = payload.villageWard;
     let block = payload.block;
     let district = payload.district;
     let state = payload.state;
-    const lat = parseFloat(payload.latitude) || 25.5941;
-    const lon = parseFloat(payload.longitude) || 85.1376;
 
-    if (!villageWard || !district || villageWard === 'Unknown') {
-      try {
-        const osmLocation = await osmService.reverseGeocode(lat, lon);
-        villageWard = villageWard || osmLocation.villageWard;
-        block = block || osmLocation.block;
-        district = district || osmLocation.district;
-        state = state || osmLocation.state;
-      } catch (err) {
-        console.warn(`[GrievanceService] Reverse geocode fallback: ${err.message}`);
+    // Only reverse geocode if actual GPS coordinates exist
+    if (lat !== null && lon !== null) {
+      if (!villageWard || !district || villageWard === 'Unknown' || villageWard === 'Local Ward') {
+        try {
+          const osmLocation = await osmService.reverseGeocode(lat, lon);
+          villageWard = villageWard && villageWard !== 'Unknown' && villageWard !== 'Local Ward' ? villageWard : osmLocation.villageWard;
+          block = block && block !== 'Local Block' ? block : osmLocation.block;
+          district = district && district !== 'Local District' ? district : osmLocation.district;
+          state = state && state !== 'Local State' ? state : osmLocation.state;
+        } catch (err) {
+          console.warn(`[GrievanceService] Reverse geocode fallback: ${err.message}`);
+        }
       }
     }
 
@@ -108,12 +141,18 @@ class GrievanceService {
     const initialStatus = isHitl ? 'hitlReview' : 'received';
     const id = payload.id || `LS-${now.getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
 
+    const latDir = lat !== null ? (lat >= 0 ? 'N' : 'S') : '';
+    const lonDir = lon !== null ? (lon >= 0 ? 'E' : 'W') : '';
+    const gpsLogStr = (lat !== null && lon !== null)
+      ? `GPS: Lat ${Math.abs(lat).toFixed(4)}° ${latDir}, Long ${Math.abs(lon).toFixed(4)}° ${lonDir}${gpsAccuracyM !== null ? ` (Accuracy: ±${Math.round(gpsAccuracyM)}m)` : ''}`
+      : 'GPS: Location not available';
+
     const initialAuditLogs = [
       {
         timestamp: now.toISOString(),
-        statusLabel: 'Voice Grievance Registered',
+        statusLabel: 'Grievance Registered',
         actor: 'Lok Samadhan Gateway',
-        description: `Spoken language detected: ${dialect}. GPS: Lat ${lat.toFixed(4)}° N, Long ${lon.toFixed(4)}° E.`
+        description: `Spoken language detected: ${dialect}. ${gpsLogStr}.`
       },
       {
         timestamp: new Date(now.getTime() + 1000).toISOString(),
@@ -133,14 +172,25 @@ class GrievanceService {
       rawSpeechText: payload.rawSpeechText,
       translatedText: translated,
       departmentCategory: category,
-      villageWard: villageWard || 'Local Ward',
-      block: block || 'Local Block',
-      district: district || 'Local District',
-      state: state || 'Gujarat',
+      villageWard: villageWard || 'Area Pending Verification',
+      block: block || 'Block Unspecified',
+      district: district || 'District Unspecified',
+      state: state || 'State Unspecified',
       latitude: lat,
       longitude: lon,
+      gpsAccuracyM,
+      locationCapturedAt,
       photoUrl: payload.photoUrl || null,
       photoAnalysisSummary: payload.photoAnalysisSummary || null,
+      imageVerificationStatus: payload.imageVerificationStatus || payload.image_verification_status || (payload.photoUrl ? 'unverified' : null),
+      imageCivicCategory: payload.imageCivicCategory || payload.image_civic_category || null,
+      imageConfidenceScore: payload.imageConfidenceScore !== undefined ? payload.imageConfidenceScore : (payload.image_confidence_score !== undefined ? payload.image_confidence_score : null),
+      imageAuthenticityStatus: payload.imageAuthenticityStatus || payload.image_authenticity_status || (payload.photoUrl ? 'unavailable' : null),
+      imageAuthenticityDetails: payload.imageAuthenticityDetails || payload.image_authenticity_details || null,
+      imageDetectorInfo: payload.imageDetectorInfo || payload.image_detector_info || null,
+      imageVerifiedAt: payload.imageVerifiedAt || payload.image_verified_at || (payload.photoUrl ? now.toISOString() : null),
+      exifGpsLatitude: payload.exifGpsLatitude !== undefined ? payload.exifGpsLatitude : (payload.exif_gps_latitude !== undefined ? payload.exif_gps_latitude : null),
+      exifGpsLongitude: payload.exifGpsLongitude !== undefined ? payload.exifGpsLongitude : (payload.exif_gps_longitude !== undefined ? payload.exif_gps_longitude : null),
       urgency,
       aiConfidenceScore: confidence,
       status: initialStatus,
@@ -156,7 +206,52 @@ class GrievanceService {
       auditLog: initialAuditLogs
     };
 
-    return await supabaseService.createGrievance(newRecord);
+    const created = await supabaseService.createGrievance(newRecord);
+
+    try {
+      const citizenIdentifier = payload.userId || 'default_citizen';
+      const rewardResult = await rewardsService.awardComplaintReward(
+        citizenIdentifier,
+        created.id,
+        `Eligible Civic Complaint #${created.id}`
+      );
+      return {
+        ...created,
+        rewardInfo: rewardResult
+      };
+    } catch (rewardErr) {
+      console.warn(`[GrievanceService] Auto-award reward note: ${rewardErr.message}`);
+      return created;
+    }
+  }
+
+  /**
+   * Officer action: flags an image for manual review or updates verification state
+   */
+  async flagImageReview(id, { note = '', verificationStatus = 'flagged_manual_review', authenticityStatus, officerName = 'Reviewing Officer' } = {}) {
+    const existing = await supabaseService.getGrievanceById(id);
+    if (!existing) {
+      throw new Error(`Grievance with ID ${id} not found`);
+    }
+
+    const updates = {
+      imageVerificationStatus: verificationStatus,
+      isHitlFallback: true,
+      hitlReviewerNotes: note || existing.hitlReviewerNotes || 'Flagged for image verification review.'
+    };
+    if (authenticityStatus) {
+      updates.imageAuthenticityStatus = authenticityStatus;
+    }
+
+    const auditStep = {
+      timestamp: new Date().toISOString(),
+      statusLabel: 'Image Verification Flagged',
+      actor: officerName,
+      description: note || `Image flagged as ${verificationStatus} for manual review.`
+    };
+
+    await supabaseService.addAuditLog(id, auditStep);
+    return await supabaseService.updateGrievance(id, updates);
   }
 
   /**

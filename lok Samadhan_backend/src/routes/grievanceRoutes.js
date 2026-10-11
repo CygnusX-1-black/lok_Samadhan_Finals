@@ -23,6 +23,9 @@ router.post('/', (req, res) => grievanceController.createGrievance(req, res));
 // PATCH /api/grievances/:id/status - Update grievance status
 router.patch('/:id/status', (req, res) => grievanceController.updateStatus(req, res));
 
+// PATCH /api/grievances/:id/flag-review - Flag image for manual review
+router.patch('/:id/flag-review', (req, res) => grievanceController.flagImageReview(req, res));
+
 // POST /api/grievances/:id/escalate - Escalate grievance past SLA
 router.post('/:id/escalate', (req, res) => grievanceController.escalate(req, res));
 

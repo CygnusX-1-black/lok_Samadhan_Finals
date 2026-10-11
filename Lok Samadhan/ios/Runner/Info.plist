@@ -11,9 +11,11 @@
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>Lok Samadhan requires photo library access to select grievance photos.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>Lok Samadhan requires location access to stamp real GPS coordinates on field photos.</string>
+	<string>Lok Samadhan uses your location to attach accurate GPS coordinates to your civic complaint so the responsible department can identify the correct location.</string>
 	<key>NSLocationAlwaysUsageDescription</key>
-	<string>Lok Samadhan requires location access to stamp real GPS coordinates on field photos.</string>
+	<string>Lok Samadhan uses your location to attach accurate GPS coordinates to your civic complaint so the responsible department can identify the correct location.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>Lok Samadhan uses your location to attach accurate GPS coordinates to your civic complaint so the responsible department can identify the correct location.</string>
 
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>

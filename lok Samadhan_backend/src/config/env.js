@@ -12,7 +12,7 @@ const config = {
   // Google Gemini API / Gemma Model
   gemini: {
     apiKey: process.env.GEMINI_API_KEY || '',
-    model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+    model: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
   },
 
   // Supabase Configuration

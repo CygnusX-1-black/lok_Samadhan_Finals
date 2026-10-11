@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../models/user_role.dart';
+import '../providers/auth_provider.dart';
 import '../providers/grievance_provider.dart';
+import '../providers/rewards_provider.dart';
 import '../theme/app_colors.dart';
 import '../widgets/govt_header_banner.dart';
 
@@ -32,6 +34,17 @@ class _HomeNavigationScreenState extends State<HomeNavigationScreen> {
     final grievanceProvider = Provider.of<GrievanceProvider>(context);
     final currentPersona = grievanceProvider.currentPersona;
     final hitlPendingCount = grievanceProvider.hitlCount;
+
+    final authProvider = Provider.of<AuthProvider>(context);
+    final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
+    final currentUserId = (authProvider.currentUser?.id.isNotEmpty ?? false)
+        ? authProvider.currentUser!.id
+        : 'default_citizen';
+    if (rewardsProvider.activeUserId != currentUserId) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        rewardsProvider.setActiveUser(currentUserId);
+      });
+    }
 
     return Scaffold(
       appBar: GovtHeaderBanner(

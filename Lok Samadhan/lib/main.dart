@@ -6,6 +6,7 @@ import 'providers/chat_provider.dart';
 import 'providers/grievance_provider.dart';
 import 'providers/language_provider.dart';
 import 'providers/location_provider.dart';
+import 'providers/rewards_provider.dart';
 import 'providers/voice_engine_provider.dart';
 import 'screens/home_navigation_screen.dart';
 import 'theme/app_theme.dart';
@@ -29,6 +30,7 @@ class LokSamadhanApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => VoiceEngineProvider()),
         ChangeNotifierProvider(create: (_) => GrievanceProvider()),
         ChangeNotifierProvider(create: (_) => ChatProvider()),
+        ChangeNotifierProvider(create: (_) => RewardsProvider()),
       ],
       child: MaterialApp(
         title: 'Lok Samadhan - Voice Grievance Bot',

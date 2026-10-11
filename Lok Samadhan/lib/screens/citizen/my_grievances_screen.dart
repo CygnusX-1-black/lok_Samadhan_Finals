@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../../providers/grievance_provider.dart';
 import '../../providers/language_provider.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/time_utils.dart';
 import '../../widgets/complaint_card.dart';
 import '../../widgets/sms_notification_sheet.dart';
 
@@ -200,7 +201,7 @@ class MyGrievancesScreen extends StatelessWidget {
                                 const Icon(Icons.verified, color: AppColors.emeraldPrimary, size: 13),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'GPS: Lat ${g.latitude}° N, Long ${g.longitude}° E',
+                                  g.hasValidGps ? 'GPS: ${g.formattedGps}' : 'Location not available',
                                   style: GoogleFonts.notoSans(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w700),
                                 ),
                               ],
@@ -222,13 +223,13 @@ class MyGrievancesScreen extends StatelessWidget {
               Text('${g.departmentInfo.nameEn} (${g.departmentInfo.nameHi})'),
               const SizedBox(height: 12),
               Text('Location: ${g.villageWard}, ${g.district}, ${g.state}'),
-              Text('GPS Coordinates: Lat ${g.latitude}° N, Long ${g.longitude}° E', style: GoogleFonts.notoSans(color: AppColors.emeraldPrimary, fontWeight: FontWeight.w600)),
+              Text(g.hasValidGps ? 'GPS Coordinates: ${g.formattedGps}${g.formattedAccuracy.isNotEmpty ? " (${g.formattedAccuracy})" : ""}' : 'GPS Coordinates: Location not available', style: GoogleFonts.notoSans(color: AppColors.emeraldPrimary, fontWeight: FontWeight.w600)),
               const SizedBox(height: 16),
               Text('Audit Trail:', style: GoogleFonts.notoSans(fontWeight: FontWeight.w700)),
               const SizedBox(height: 6),
               ...g.auditLog.map<Widget>((step) => Padding(
                 padding: const EdgeInsets.only(bottom: 8),
-                child: Text('• [${step.statusLabel}] ${step.actor}: ${step.description}'),
+                child: Text('• [${step.statusLabel}] (${TimeUtils.formatKolkataTime(step.timestamp)}) ${step.actor}: ${step.description}'),
               )),
             ],
           ),

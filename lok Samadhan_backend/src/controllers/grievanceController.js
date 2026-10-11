@@ -48,6 +48,8 @@ class GrievanceController {
   async createGrievance(req, res) {
     try {
       const {
+        id,
+        userId,
         rawSpeechText,
         citizenPhone,
         citizenName,
@@ -59,8 +61,30 @@ class GrievanceController {
         state,
         latitude,
         longitude,
+        gpsAccuracyM,
+        gps_accuracy_m,
+        locationCapturedAt,
+        location_captured_at,
         photoUrl,
         photoAnalysisSummary,
+        imageVerificationStatus,
+        image_verification_status,
+        imageCivicCategory,
+        image_civic_category,
+        imageConfidenceScore,
+        image_confidence_score,
+        imageAuthenticityStatus,
+        image_authenticity_status,
+        imageAuthenticityDetails,
+        image_authenticity_details,
+        imageDetectorInfo,
+        image_detector_info,
+        imageVerifiedAt,
+        image_verified_at,
+        exifGpsLatitude,
+        exif_gps_latitude,
+        exifGpsLongitude,
+        exif_gps_longitude,
         urgency
       } = req.body;
 
@@ -69,6 +93,8 @@ class GrievanceController {
       }
 
       const created = await grievanceService.createGrievance({
+        id,
+        userId: userId || (req.user && req.user.id) || null,
         rawSpeechText,
         citizenPhone,
         citizenName,
@@ -80,14 +106,47 @@ class GrievanceController {
         state,
         latitude,
         longitude,
+        gpsAccuracyM: gpsAccuracyM ?? gps_accuracy_m,
+        locationCapturedAt: locationCapturedAt ?? location_captured_at,
         photoUrl,
         photoAnalysisSummary,
+        imageVerificationStatus: imageVerificationStatus ?? image_verification_status,
+        imageCivicCategory: imageCivicCategory ?? image_civic_category,
+        imageConfidenceScore: imageConfidenceScore ?? image_confidence_score,
+        imageAuthenticityStatus: imageAuthenticityStatus ?? image_authenticity_status,
+        imageAuthenticityDetails: imageAuthenticityDetails ?? image_authenticity_details,
+        imageDetectorInfo: imageDetectorInfo ?? image_detector_info,
+        imageVerifiedAt: imageVerifiedAt ?? image_verified_at,
+        exifGpsLatitude: exifGpsLatitude ?? exif_gps_latitude,
+        exifGpsLongitude: exifGpsLongitude ?? exif_gps_longitude,
         urgency
       });
 
       return successResponse(res, created, 'Grievance lodged successfully', 201);
     } catch (err) {
       return errorResponse(res, err.message, 500);
+    }
+  }
+
+  /**
+   * PATCH /api/grievances/:id/flag-review
+   * Allows officer to flag suspicious/inconclusive image for manual review
+   */
+  async flagImageReview(req, res) {
+    try {
+      const { id } = req.params;
+      const { note, verificationStatus, authenticityStatus, officerName } = req.body;
+
+      const updated = await grievanceService.flagImageReview(id, {
+        note,
+        verificationStatus: verificationStatus || 'flagged_manual_review',
+        authenticityStatus,
+        officerName: officerName || 'Officer'
+      });
+
+      return successResponse(res, updated, 'Grievance image verification updated for manual review');
+    } catch (err) {
+      return errorResponse(res, err.message, 400);
     }
   }
 

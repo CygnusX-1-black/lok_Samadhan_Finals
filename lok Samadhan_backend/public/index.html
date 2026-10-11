@@ -353,18 +353,18 @@
           <div class="form-row">
             <div class="form-group">
               <label for="form-lat">Latitude (GPS)</label>
-              <input type="number" step="0.0001" id="form-lat" value="23.0225">
+              <input type="number" step="any" id="form-lat" placeholder="Capture via GPS button or enter">
             </div>
             <div class="form-group">
               <label for="form-lon">Longitude (GPS)</label>
-              <input type="number" step="0.0001" id="form-lon" value="72.5714">
+              <input type="number" step="any" id="form-lon" placeholder="Capture via GPS button or enter">
             </div>
           </div>
           <div class="geo-detect-row">
             <button type="button" class="btn btn-ghost btn-sm" id="btn-detect-gps">
-              <i class="bi bi-geo"></i> Use Current Device Location
+              <i class="bi bi-geo"></i> Capture Device GPS Location
             </button>
-            <span class="osm-hint" id="osm-detected-addr">Auto-reverse geocoding via OpenStreetMap Nominatim</span>
+            <span class="osm-hint" id="osm-detected-addr">Tap to acquire live device GPS fix</span>
           </div>
 
           <div class="modal-footer">

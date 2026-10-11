@@ -141,6 +141,76 @@ async function runTests() {
       assert(geoJsonRes.body.type === 'FeatureCollection', 'Output is standard GeoJSON FeatureCollection');
       assert(Array.isArray(geoJsonRes.body.features), 'Contains geo-features array');
 
+      // 8. AI Image Verification & Authenticity Analysis Endpoint
+      console.log('\n--- Test Suite 7: AI Image Verification & Authenticity Forensics ---');
+      // Create minimal valid 1x1 JPEG buffer in base64
+      const sampleJpegBase64 = '/9j/4AAQSkZJRgABAQEASABIAAD/2wBDAP//////////////////////////////////////////////////////////////////////////////////////wgALCAABAAEBAREA/8QAFBABAAAAAAAAAAAAAAAAAAAAAP/aAAgBAQABPxA=';
+      
+      const verifyRes = await makeRequest({
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/ai/verify-image',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }, {
+        imageBase64: sampleJpegBase64,
+        mimeType: 'image/jpeg',
+        description: 'Road damage inspection test'
+      });
+      assert(verifyRes.status === 200, 'POST /api/ai/verify-image returns HTTP 200');
+      assert(verifyRes.body.data && verifyRes.body.data.civicDetection, 'Returns structured civicDetection result');
+      assert(verifyRes.body.data && verifyRes.body.data.authenticityAnalysis, 'Returns structured authenticityAnalysis result');
+      assert(verifyRes.body.data && verifyRes.body.data.verificationSummary, 'Returns overall verificationSummary');
+      assert(
+        verifyRes.body.data.authenticityAnalysis.status === 'UNAVAILABLE' ||
+        verifyRes.body.data.authenticityAnalysis.status === 'LIKELY_AUTHENTIC' ||
+        verifyRes.body.data.authenticityAnalysis.status === 'INCONCLUSIVE' ||
+        verifyRes.body.data.authenticityAnalysis.status === 'SUSPICIOUS',
+        'Authenticity analysis produces honest state (not fabricated certainty)'
+      );
+
+      // Test synthetic prompt chunk detection
+      const fakePngBuffer = Buffer.concat([
+        Buffer.from([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]),
+        Buffer.from('tEXtparameters\x00Steps: 20, Sampler: Euler, Model: Stable Diffusion v1.5, Prompt: A deep pothole on road\x00')
+      ]);
+      const fakePngRes = await makeRequest({
+        hostname: 'localhost',
+        port: PORT,
+        path: '/api/ai/verify-image',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      }, {
+        imageBase64: fakePngBuffer.toString('base64'),
+        mimeType: 'image/png'
+      });
+      assert(fakePngRes.status === 200, 'POST /api/ai/verify-image with synthetic PNG metadata returns 200');
+      assert(
+        fakePngRes.body.data.authenticityAnalysis.status === 'SUSPICIOUS',
+        'Correctly flags synthetic/AI metadata markers as SUSPICIOUS'
+      );
+      assert(
+        fakePngRes.body.data.authenticityAnalysis.stateLabel === 'Potentially AI-Generated or Manipulated',
+        'State label matches "Potentially AI-Generated or Manipulated"'
+      );
+
+      // 9. Officer Flag Review Endpoint
+      console.log('\n--- Test Suite 8: Officer Image Verification Review ---');
+      const flagRes = await makeRequest({
+        hostname: 'localhost',
+        port: PORT,
+        path: `/api/grievances/${newTicketId}/flag-review`,
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      }, {
+        verificationStatus: 'flagged_manual_review',
+        note: 'Officer requested on-site field team verification for image authenticity.',
+        officerName: 'Senior Nodal Officer'
+      });
+      assert(flagRes.status === 200, 'PATCH /api/grievances/:id/flag-review returns HTTP 200');
+      assert(flagRes.body.data.imageVerificationStatus === 'flagged_manual_review', 'Image verification status updated to flagged_manual_review');
+      assert(flagRes.body.data.isHitlFallback === true, 'Grievance marked for Human-in-the-Loop review');
+
       console.log(`\n======================================================`);
       console.log(`🎉 TEST SUMMARY: ${passed}/${total} Passed (${Math.round((passed / total) * 100)}%)`);
       console.log(`======================================================\n`);

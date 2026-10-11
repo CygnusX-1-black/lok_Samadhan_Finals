@@ -1,4 +1,5 @@
 const aiService = require('../services/aiService');
+const imageVerificationService = require('../services/imageVerificationService');
 const grievanceService = require('../services/grievanceService');
 const { successResponse, errorResponse } = require('../utils/response');
 
@@ -51,7 +52,7 @@ class AIController {
 
       if (req.file) {
         imageBuffer = req.file.buffer;
-        mimeType = req.file.mimetype;
+        mimeType = req.file.mimetype || 'image/jpeg';
       } else if (req.body.imageBase64) {
         imageBuffer = Buffer.from(req.body.imageBase64, 'base64');
         mimeType = req.body.mimeType || 'image/jpeg';
@@ -59,8 +60,62 @@ class AIController {
         return errorResponse(res, 'Either image file or imageBase64 is required', 400);
       }
 
+      // Infer actual MIME type from buffer magic bytes if sent as generic octet-stream
+      if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+        if (imageBuffer && imageBuffer.length > 2 && imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8) {
+          mimeType = 'image/jpeg';
+        } else if (imageBuffer && imageBuffer.length > 8 && imageBuffer.slice(0, 8).toString('hex') === '89504e470d0a1a0a') {
+          mimeType = 'image/png';
+        } else if (imageBuffer && imageBuffer.length > 12 && imageBuffer.slice(0, 4).toString() === 'RIFF' && imageBuffer.slice(8, 12).toString() === 'WEBP') {
+          mimeType = 'image/webp';
+        } else {
+          mimeType = 'image/jpeg';
+        }
+      }
+
       const analysis = await aiService.analyzeCivicImage(imageBuffer, mimeType, description);
       return successResponse(res, analysis, 'Image analyzed successfully');
+    } catch (err) {
+      return errorResponse(res, err.message, 500);
+    }
+  }
+
+  /**
+   * POST /api/ai/verify-image
+   * Comprehensive civic problem detection + AI authenticity & manipulation analysis + EXIF GPS
+   * Accepts multipart file ('image') or body.imageBase64
+   */
+  async verifyImage(req, res) {
+    try {
+      let imageBuffer;
+      let mimeType = 'image/jpeg';
+      const description = req.body.description || '';
+
+      if (req.file) {
+        imageBuffer = req.file.buffer;
+        mimeType = req.file.mimetype || 'image/jpeg';
+      } else if (req.body.imageBase64) {
+        imageBuffer = Buffer.from(req.body.imageBase64, 'base64');
+        mimeType = req.body.mimeType || 'image/jpeg';
+      } else {
+        return errorResponse(res, 'Either image file or imageBase64 is required for image verification', 400);
+      }
+
+      // Infer actual MIME type from buffer magic bytes if sent as generic octet-stream
+      if (!mimeType || mimeType === 'application/octet-stream' || !mimeType.startsWith('image/')) {
+        if (imageBuffer && imageBuffer.length > 2 && imageBuffer[0] === 0xFF && imageBuffer[1] === 0xD8) {
+          mimeType = 'image/jpeg';
+        } else if (imageBuffer && imageBuffer.length > 8 && imageBuffer.slice(0, 8).toString('hex') === '89504e470d0a1a0a') {
+          mimeType = 'image/png';
+        } else if (imageBuffer && imageBuffer.length > 12 && imageBuffer.slice(0, 4).toString() === 'RIFF' && imageBuffer.slice(8, 12).toString() === 'WEBP') {
+          mimeType = 'image/webp';
+        } else {
+          mimeType = 'image/jpeg';
+        }
+      }
+
+      const result = await imageVerificationService.verifyCivicImage(imageBuffer, mimeType, description);
+      return successResponse(res, result, 'Civic image verification completed');
     } catch (err) {
       return errorResponse(res, err.message, 500);
     }

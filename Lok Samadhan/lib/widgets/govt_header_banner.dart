@@ -9,6 +9,8 @@ import '../theme/app_colors.dart';
 import 'auth/auth_modal.dart';
 import 'auth/user_profile_modal.dart';
 
+import '../screens/citizen/rewards_screen.dart';
+
 class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
   final bool showPersonaToggle;
   final Function(int tabIndex)? onSelectCitizenTab;
@@ -138,6 +140,50 @@ class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
                 ),
               ),
 
+              // 🎁 Rewards Button (Icon-only with tooltip and aria-label)
+              Tooltip(
+                message: isGujarati ? 'ઇનામો (Rewards)' : 'Rewards',
+                child: Semantics(
+                  label: 'Rewards',
+                  button: true,
+                  child: InkWell(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const RewardsScreen()),
+                      );
+                    },
+                    borderRadius: BorderRadius.circular(20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Color(0xFFD97706), // Warm Amber
+                            Color(0xFFB45309), // Deep Amber/Gold
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: const Color(0xFFFDE68A), width: 1.2),
+                        boxShadow: const [
+                          BoxShadow(
+                            color: Colors.black26,
+                            blurRadius: 3,
+                            offset: Offset(0, 1.5),
+                          ),
+                        ],
+                      ),
+                      child: const Icon(
+                        Icons.card_giftcard_rounded,
+                        color: Colors.white,
+                        size: 16,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 6),
+
               // Persona Switcher Button (👤 Citizen / 👮 Officer)
               if (showPersonaToggle)
                 InkWell(
@@ -183,40 +229,34 @@ class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
 
-              // Sign In Button OR Authenticated User Indicator (Immediately to the right of Citizen button)
+              // Sign In Button (Icon-only with tooltip and aria-label) OR Authenticated User Indicator
               const SizedBox(width: 6),
               if (!authProvider.isAuthenticated)
-                InkWell(
-                  onTap: () => AuthModal.show(context),
-                  borderRadius: BorderRadius.circular(20),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.18),
+                Tooltip(
+                  message: isGujarati ? 'સાઇન ઇન (Sign In)' : 'Sign In',
+                  child: Semantics(
+                    label: 'Sign In',
+                    button: true,
+                    child: InkWell(
+                      key: const Key('header_sign_in_button'),
+                      onTap: () => AuthModal.show(context),
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: AppColors.saffronLight.withOpacity(0.9),
-                        width: 1.2,
-                      ),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.login_rounded,
-                          color: AppColors.saffronLight,
-                          size: 14,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          isGujarati ? 'સાઇન ઇન' : 'Sign In',
-                          style: GoogleFonts.notoSans(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.18),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: AppColors.saffronLight.withOpacity(0.9),
+                            width: 1.2,
                           ),
                         ),
-                      ],
+                        child: const Icon(
+                          Icons.login_rounded,
+                          color: AppColors.saffronLight,
+                          size: 16,
+                        ),
+                      ),
                     ),
                   ),
                 )
@@ -234,6 +274,11 @@ class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
                         context,
                         onNavigateToMyGrievances: () => onSelectCitizenTab?.call(4),
                         onNavigateToTrackStatus: () => onSelectCitizenTab?.call(3),
+                      );
+                    } else if (value == 'rewards') {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => const RewardsScreen()),
                       );
                     } else if (value == 'grievances') {
                       onSelectCitizenTab?.call(4);
@@ -307,9 +352,28 @@ class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
                         children: [
                           const Icon(Icons.person_outline, size: 16, color: Colors.white),
                           const SizedBox(width: 8),
-                          Text(
-                            isGujarati ? 'મારી પ્રોફાઇલ (My Profile)' : 'My Profile',
-                            style: GoogleFonts.notoSans(fontSize: 12.5, color: Colors.white),
+                          Expanded(
+                            child: Text(
+                              isGujarati ? 'મારી પ્રોફાઇલ (My Profile)' : 'My Profile',
+                              style: GoogleFonts.notoSans(fontSize: 12.5, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem<String>(
+                      value: 'rewards',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.card_giftcard_rounded, size: 16, color: Color(0xFFF59E0B)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              isGujarati ? 'ઇનામો અને સિક્કા (Rewards)' : 'Rewards & Grievance Coins',
+                              style: GoogleFonts.notoSans(fontSize: 12.5, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -320,9 +384,12 @@ class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
                         children: [
                           const Icon(Icons.receipt_long_outlined, size: 16, color: Colors.white),
                           const SizedBox(width: 8),
-                          Text(
-                            isGujarati ? 'મારી ફરિયાદો (My Grievances)' : 'My Grievances',
-                            style: GoogleFonts.notoSans(fontSize: 12.5, color: Colors.white),
+                          Expanded(
+                            child: Text(
+                              isGujarati ? 'મારી ફરિયાદો (My Grievances)' : 'My Grievances',
+                              style: GoogleFonts.notoSans(fontSize: 12.5, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -333,9 +400,12 @@ class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
                         children: [
                           const Icon(Icons.search, size: 16, color: Colors.white),
                           const SizedBox(width: 8),
-                          Text(
-                            isGujarati ? 'સ્થિતિ ટ્રેક કરો (Track Status)' : 'Track Status',
-                            style: GoogleFonts.notoSans(fontSize: 12.5, color: Colors.white),
+                          Expanded(
+                            child: Text(
+                              isGujarati ? 'સ્થિતિ ટ્રેક કરો (Track Status)' : 'Track Status',
+                              style: GoogleFonts.notoSans(fontSize: 12.5, color: Colors.white),
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
                         ],
                       ),
@@ -347,12 +417,15 @@ class GovtHeaderBanner extends StatelessWidget implements PreferredSizeWidget {
                         children: [
                           const Icon(Icons.logout, size: 16, color: Color(0xFFFCA5A5)),
                           const SizedBox(width: 8),
-                          Text(
-                            isGujarati ? 'સાઇન આઉટ કરો (Logout)' : 'Logout',
-                            style: GoogleFonts.notoSans(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFFFCA5A5),
+                          Expanded(
+                            child: Text(
+                              isGujarati ? 'સાઇન આઉટ કરો (Logout)' : 'Logout',
+                              style: GoogleFonts.notoSans(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFFFCA5A5),
+                              ),
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],

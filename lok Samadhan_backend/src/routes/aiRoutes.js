@@ -13,6 +13,9 @@ router.post('/chat', aiLimiter, (req, res) => aiController.chat(req, res));
 // POST /api/ai/analyze-image - Multimodal vision inspection
 router.post('/analyze-image', aiLimiter, upload.single('image'), (req, res) => aiController.analyzeImage(req, res));
 
+// POST /api/ai/verify-image - Intelligent image verification (civic detection + AI manipulation analysis + EXIF GPS)
+router.post('/verify-image', aiLimiter, upload.single('image'), (req, res) => aiController.verifyImage(req, res));
+
 // POST /api/ai/suggest-resolution - Generates official response draft
 router.post('/suggest-resolution', aiLimiter, (req, res) => aiController.suggestResolution(req, res));
 

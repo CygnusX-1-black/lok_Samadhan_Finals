@@ -5,6 +5,7 @@ import '../models/department.dart';
 import '../models/grievance.dart';
 import 'grievance_provider.dart';
 import 'location_provider.dart';
+import 'rewards_provider.dart';
 
 class ChatProvider with ChangeNotifier {
   final List<ChatMessage> _messages = [];
@@ -53,6 +54,7 @@ class ChatProvider with ChangeNotifier {
     String text, {
     required GrievanceProvider grievanceProvider,
     required LocationProvider locationProvider,
+    RewardsProvider? rewardsProvider,
   }) async {
     final cleanText = text.trim();
     if (cleanText.isEmpty) return;
@@ -81,6 +83,7 @@ class ChatProvider with ChangeNotifier {
         await confirmAndLodge(
           grievanceProvider: grievanceProvider,
           locationProvider: locationProvider,
+          rewardsProvider: rewardsProvider,
         );
         return;
       }
@@ -198,9 +201,14 @@ class ChatProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  /// Optional global listener for reward awards in chat flow
+  void Function(AwardResult award)? onRewardAwarded;
+
   Future<Grievance?> confirmAndLodge({
     required GrievanceProvider grievanceProvider,
     required LocationProvider locationProvider,
+    RewardsProvider? rewardsProvider,
+    void Function(AwardResult award)? onRewardAwarded,
   }) async {
     if (_activeDraft == null) return null;
 
@@ -210,19 +218,24 @@ class ChatProvider with ChangeNotifier {
 
     await Future.delayed(const Duration(milliseconds: 500));
 
-    final lat = locationProvider.latitude ?? 25.5941;
-    final lng = locationProvider.longitude ?? 85.1376;
+    final gpsResult = await locationProvider.acquireFreshGps();
+    final lat = gpsResult.latitude ?? locationProvider.latitude;
+    final lng = gpsResult.longitude ?? locationProvider.longitude;
+    final acc = gpsResult.accuracy ?? locationProvider.accuracy;
+    final capAt = gpsResult.capturedAt ?? locationProvider.capturedAt ?? DateTime.now().toUtc();
 
     final newGrievance = grievanceProvider.lodgeChatGrievance(
       problemTitle: draft.problemTitle,
       detailedDescription: draft.detailedDescription,
       category: draft.category,
-      villageWard: draft.villageWard,
-      block: draft.block,
-      district: draft.district,
-      state: draft.state,
+      villageWard: draft.villageWard.isNotEmpty ? draft.villageWard : (locationProvider.villageWard ?? 'Area Pending GPS'),
+      block: draft.block.isNotEmpty ? draft.block : (locationProvider.block ?? ''),
+      district: draft.district.isNotEmpty ? draft.district : (locationProvider.district ?? ''),
+      state: draft.state.isNotEmpty ? draft.state : (locationProvider.state ?? ''),
       latitude: lat,
       longitude: lng,
+      gpsAccuracyM: acc,
+      locationCapturedAt: capAt,
       citizenPhone: draft.citizenPhone,
       citizenName: draft.citizenName,
       urgency: draft.urgency,
@@ -251,6 +264,19 @@ class ChatProvider with ChangeNotifier {
     );
 
     notifyListeners();
+
+    if (rewardsProvider != null) {
+      final award = await rewardsProvider.awardEligibleComplaint(
+        newGrievance.id,
+        description: 'Eligible Chat Complaint #${newGrievance.id}',
+      );
+      if (onRewardAwarded != null) {
+        onRewardAwarded(award);
+      } else if (this.onRewardAwarded != null) {
+        this.onRewardAwarded!(award);
+      }
+    }
+
     return newGrievance;
   }
 
@@ -451,9 +477,11 @@ class ChatProvider with ChangeNotifier {
         lower.contains('અમારા') ||
         lower.contains('ગામ');
 
-    final locationStr = locationProvider.isRealGpsAcquired
-        ? locationProvider.statusMessage
-        : (isGujaratiText ? 'Ward 3, Sanand Taluka, Gujarat' : 'Ward 4, Bhojpur Sadar, Bihar');
+    final locationStr = locationProvider.villageWard ??
+        (locationProvider.isRealGpsAcquired ? locationProvider.statusMessage : 'Location pending GPS acquisition');
+    final blockStr = locationProvider.block ?? (isGujaratiText ? 'Sanand' : '');
+    final districtStr = locationProvider.district ?? (isGujaratiText ? 'Ahmedabad' : '');
+    final stateStr = locationProvider.state ?? (isGujaratiText ? 'Gujarat' : '');
 
     return DraftGrievance(
       problemTitle: problemTitle,
@@ -462,9 +490,9 @@ class ChatProvider with ChangeNotifier {
       urgency: urgency,
       confidenceScore: confidenceScore,
       villageWard: locationStr,
-      block: isGujaratiText ? 'Sanand Taluka' : 'Bhojpur Sadar',
-      district: isGujaratiText ? 'Ahmedabad' : 'Bhojpur',
-      state: isGujaratiText ? 'Gujarat' : 'Bihar',
+      block: blockStr,
+      district: districtStr,
+      state: stateStr,
       citizenName: 'Nagarik Citizen',
       citizenPhone: '+91 98351 44102',
       isHitl: isHitl,

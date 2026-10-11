@@ -2,9 +2,9 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import '../models/grievance.dart';
 import '../theme/app_colors.dart';
+import '../utils/time_utils.dart';
 import 'confidence_badge.dart';
 import 'sla_countdown_badge.dart';
 
@@ -25,7 +25,7 @@ class ComplaintCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final dept = grievance.departmentInfo;
-    final timeStr = DateFormat('d MMM yyyy, h:mm a').format(grievance.createdAt);
+    final timeStr = TimeUtils.formatKolkataTime(grievance.createdAt);
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -111,6 +111,11 @@ class ComplaintCard extends StatelessWidget {
                                 ),
                               ),
                         Positioned(
+                          top: 6,
+                          right: 6,
+                          child: _buildVerificationBadge(grievance),
+                        ),
+                        Positioned(
                           bottom: 6,
                           left: 6,
                           child: Container(
@@ -121,10 +126,10 @@ class ComplaintCard extends StatelessWidget {
                             ),
                             child: Row(
                               children: [
-                                const Icon(Icons.verified, color: AppColors.emeraldPrimary, size: 12),
+                                const Icon(Icons.gps_fixed, color: AppColors.emeraldPrimary, size: 12),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'GPS: ${grievance.latitude.toStringAsFixed(4)}° N, ${grievance.longitude.toStringAsFixed(4)}° E',
+                                  grievance.hasValidGps ? 'GPS: ${grievance.formattedGps}' : 'Location not available',
                                   style: GoogleFonts.notoSans(fontSize: 10, color: Colors.white, fontWeight: FontWeight.w700),
                                 ),
                               ],
@@ -197,7 +202,9 @@ class ComplaintCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Expanded(
                     child: Text(
-                      '${grievance.villageWard}, ${grievance.district} (GPS: ${grievance.latitude.toStringAsFixed(2)}°, ${grievance.longitude.toStringAsFixed(2)}°)',
+                      grievance.hasValidGps
+                          ? '${grievance.villageWard.isNotEmpty ? "${grievance.villageWard}, " : ""}${grievance.district.isNotEmpty ? "${grievance.district} " : ""}(GPS: ${grievance.formattedGps})'
+                          : '${grievance.villageWard.isNotEmpty ? "${grievance.villageWard}, " : ""}${grievance.district.isNotEmpty ? grievance.district : "Location not available"}',
                       style: GoogleFonts.notoSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.w500,
@@ -298,6 +305,73 @@ class ComplaintCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: fg,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildVerificationBadge(Grievance g) {
+    if (g.imageVerificationStatus == 'flagged_manual_review') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppColors.saffronPrimary.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.flag, size: 11, color: Colors.white),
+            const SizedBox(width: 3),
+            Text(
+              'Manual Review',
+              style: GoogleFonts.notoSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: Colors.white),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (g.imageAuthenticityStatus == 'suspicious_manipulation') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+        decoration: BoxDecoration(
+          color: AppColors.errorRed.withValues(alpha: 0.92),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.warning_amber_rounded, size: 11, color: Colors.white),
+            const SizedBox(width: 3),
+            Text(
+              '⚠️ AI Flagged',
+              style: GoogleFonts.notoSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: Colors.white),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final isCivicVerified = g.imageVerificationStatus == 'verified_civic_issue' ||
+        g.imageVerificationStatus == 'VERIFIED_CIVIC_PROBLEM' ||
+        g.photoUrl != null;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: AppColors.emeraldDark.withValues(alpha: 0.92),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.verified, size: 11, color: Colors.white),
+          const SizedBox(width: 3),
+          Text(
+            isCivicVerified ? 'Civic Verified' : 'Photo Evidence',
+            style: GoogleFonts.notoSans(fontSize: 9.5, fontWeight: FontWeight.w700, color: Colors.white),
           ),
         ],
       ),

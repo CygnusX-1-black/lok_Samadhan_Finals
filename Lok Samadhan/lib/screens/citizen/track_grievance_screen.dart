@@ -4,7 +4,9 @@ import 'package:provider/provider.dart';
 import '../../models/grievance.dart';
 import '../../providers/grievance_provider.dart';
 import '../../providers/language_provider.dart';
+import '../../services/api_service.dart';
 import '../../theme/app_colors.dart';
+import '../../utils/time_utils.dart';
 import '../../widgets/complaint_card.dart';
 
 class TrackGrievanceScreen extends StatefulWidget {
@@ -25,15 +27,23 @@ class _TrackGrievanceScreenState extends State<TrackGrievanceScreen> {
     super.dispose();
   }
 
-  void _performSearch() {
+  Future<void> _performSearch() async {
     final query = _idController.text.trim();
     if (query.isEmpty) return;
 
     final grievanceProvider = Provider.of<GrievanceProvider>(context, listen: false);
-    setState(() {
-      _hasSearched = true;
-      _searchedGrievance = grievanceProvider.getGrievanceById(query);
-    });
+    var grievance = grievanceProvider.getGrievanceById(query);
+    if (grievance == null) {
+      try {
+        grievance = await ApiService().getGrievanceById(query);
+      } catch (_) {}
+    }
+    if (mounted) {
+      setState(() {
+        _hasSearched = true;
+        _searchedGrievance = grievance;
+      });
+    }
   }
 
   @override
@@ -228,7 +238,22 @@ class _TrackGrievanceScreenState extends State<TrackGrievanceScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(step.statusLabel, style: GoogleFonts.notoSans(fontSize: 13, fontWeight: FontWeight.w700)),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(step.statusLabel, style: GoogleFonts.notoSans(fontSize: 13, fontWeight: FontWeight.w700)),
+                              ),
+                              Text(
+                                TimeUtils.formatKolkataTime(step.timestamp),
+                                style: GoogleFonts.notoSans(
+                                  fontSize: 11,
+                                  color: AppColors.textMuted,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
                           Text('Actor: ${step.actor}', style: GoogleFonts.notoSans(fontSize: 11, color: AppColors.navyMedium, fontWeight: FontWeight.w600)),
                           Text(step.description, style: GoogleFonts.notoSans(fontSize: 12, color: AppColors.textSecondary)),
                           const SizedBox(height: 10),

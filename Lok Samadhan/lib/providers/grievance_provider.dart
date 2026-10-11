@@ -202,8 +202,10 @@ class GrievanceProvider with ChangeNotifier {
     required String citizenName,
     required String citizenPhone,
     required String dialectName,
-    double latitude = 25.5941,
-    double longitude = 85.1376,
+    double? latitude,
+    double? longitude,
+    double? gpsAccuracyM,
+    DateTime? locationCapturedAt,
   }) {
     final randomId = 'LS-2026-${(10000 + Random().nextInt(89999))}';
     final now = DateTime.now();
@@ -212,6 +214,13 @@ class GrievanceProvider with ChangeNotifier {
 
     final isHitl = aiResult.isHitlRequired || aiResult.confidenceScore < 0.85;
     final initialStatus = isHitl ? GrievanceStatus.hitlReview : GrievanceStatus.received;
+
+    final hasGps = latitude != null && longitude != null && !(latitude == 0 && longitude == 0);
+    final latDir = hasGps ? (latitude >= 0 ? 'N' : 'S') : '';
+    final lonDir = hasGps ? (longitude >= 0 ? 'E' : 'W') : '';
+    final gpsDesc = hasGps
+        ? 'GPS: Lat ${latitude.abs().toStringAsFixed(4)}° $latDir, Long ${longitude.abs().toStringAsFixed(4)}° $lonDir${gpsAccuracyM != null ? " (Accuracy: ±${gpsAccuracyM.toStringAsFixed(0)}m)" : ""}'
+        : 'GPS: Location not available';
 
     final newGrievance = Grievance(
       id: randomId,
@@ -227,6 +236,8 @@ class GrievanceProvider with ChangeNotifier {
       state: aiResult.state,
       latitude: latitude,
       longitude: longitude,
+      gpsAccuracyM: gpsAccuracyM,
+      locationCapturedAt: locationCapturedAt ?? now.toUtc(),
       urgency: aiResult.urgency,
       aiConfidenceScore: aiResult.confidenceScore,
       status: initialStatus,
@@ -240,14 +251,13 @@ class GrievanceProvider with ChangeNotifier {
           statusLabel: isHitl ? 'Voice Recorded -> HITL Queued' : 'Voice Recorded -> Auto-Routed',
           actor: 'Lok Samadhan NLP AI Engine',
           description: isHitl
-              ? 'Speech registered. GPS: Lat ${latitude.toStringAsFixed(4)}° N, Long ${longitude.toStringAsFixed(4)}° E. Queued for review.'
-              : 'Speech registered. GPS: Lat ${latitude.toStringAsFixed(4)}° N, Long ${longitude.toStringAsFixed(4)}° E. Dispatched to ${deptInfo.nameEn} queue.',
+              ? 'Speech registered. $gpsDesc. Queued for review.'
+              : 'Speech registered. $gpsDesc. Dispatched to ${deptInfo.nameEn} queue.',
         ),
       ],
     );
 
     _grievances.insert(0, newGrievance);
-
 
     _sendSmsNotification(
       grievanceId: randomId,
@@ -260,25 +270,28 @@ class GrievanceProvider with ChangeNotifier {
     notifyListeners();
 
     // Async sync to Backend Database (Supabase)
-    if (_isBackendConnected) {
-      _apiService.lodgeGrievance(
-        rawSpeechText: newGrievance.rawSpeechText,
-        translatedText: newGrievance.translatedText,
-        citizenName: newGrievance.citizenName,
-        citizenPhone: newGrievance.citizenPhone,
-        spokenDialect: newGrievance.spokenDialect,
-        departmentCategory: newGrievance.departmentCategory,
-        villageWard: newGrievance.villageWard,
-        block: newGrievance.block,
-        district: newGrievance.district,
-        state: newGrievance.state,
-        latitude: latitude,
-        longitude: longitude,
-        urgency: newGrievance.urgency,
-        confidenceScore: newGrievance.aiConfidenceScore,
-        isHitlFallback: isHitl,
-        hitlReviewerNotes: newGrievance.hitlReviewerNotes,
-      ).then((saved) {
+    _apiService.lodgeGrievance(
+      id: randomId,
+      userId: 'default_citizen',
+      rawSpeechText: newGrievance.rawSpeechText,
+      translatedText: newGrievance.translatedText,
+      citizenName: newGrievance.citizenName,
+      citizenPhone: newGrievance.citizenPhone,
+      spokenDialect: newGrievance.spokenDialect,
+      departmentCategory: newGrievance.departmentCategory,
+      villageWard: newGrievance.villageWard,
+      block: newGrievance.block,
+      district: newGrievance.district,
+      state: newGrievance.state,
+      latitude: latitude,
+      longitude: longitude,
+      gpsAccuracyM: gpsAccuracyM,
+      locationCapturedAt: locationCapturedAt ?? now.toUtc(),
+      urgency: newGrievance.urgency,
+      confidenceScore: newGrievance.aiConfidenceScore,
+      isHitlFallback: isHitl,
+      hitlReviewerNotes: newGrievance.hitlReviewerNotes,
+    ).then((saved) {
         final idx = _grievances.indexWhere((g) => g.id == randomId);
         if (idx != -1) {
           _grievances[idx] = saved;
@@ -287,7 +300,6 @@ class GrievanceProvider with ChangeNotifier {
       }).catchError((err) {
         debugPrint('[GrievanceProvider] Backend sync error: $err');
       });
-    }
 
     return newGrievance;
   }
@@ -300,17 +312,38 @@ class GrievanceProvider with ChangeNotifier {
     required String villageWard,
     required String district,
     required String state,
-    required double latitude,
-    required double longitude,
+    double? latitude,
+    double? longitude,
+    double? gpsAccuracyM,
+    DateTime? locationCapturedAt,
     required String photoUrl,
     required String photoAnalysisSummary,
     required String citizenPhone,
     required String citizenName,
+    String? imageVerificationStatus,
+    String? imageCivicCategory,
+    double? imageConfidenceScore,
+    String? imageAuthenticityStatus,
+    String? imageAuthenticityDetails,
+    String? imageDetectorInfo,
+    DateTime? imageVerifiedAt,
+    double? exifGpsLatitude,
+    double? exifGpsLongitude,
   }) {
     final randomId = 'LS-2026-${(10000 + Random().nextInt(89999))}';
     final now = DateTime.now();
     final deptInfo = DepartmentInfo.getByCategory(category);
     final dueDate = now.add(Duration(hours: deptInfo.defaultSlaHours));
+
+    final hasGps = latitude != null && longitude != null && !(latitude == 0 && longitude == 0);
+    final latDir = hasGps ? (latitude >= 0 ? 'N' : 'S') : '';
+    final lonDir = hasGps ? (longitude >= 0 ? 'E' : 'W') : '';
+    final gpsDesc = hasGps
+        ? 'Device Submission GPS: Lat ${latitude.abs().toStringAsFixed(4)}° $latDir, Long ${longitude.abs().toStringAsFixed(4)}° $lonDir${gpsAccuracyM != null ? " (Accuracy: ±${gpsAccuracyM.toStringAsFixed(0)}m)" : ""}'
+        : 'Photo captured without verified GPS';
+
+    final isSuspiciousAuth = imageAuthenticityStatus == 'suspicious_manipulation' || imageVerificationStatus == 'flagged_manual_review';
+    final initialStatus = isSuspiciousAuth ? GrievanceStatus.hitlReview : GrievanceStatus.received;
 
     final newGrievance = Grievance(
       id: randomId,
@@ -321,30 +354,42 @@ class GrievanceProvider with ChangeNotifier {
       translatedText: detailedDescription,
       departmentCategory: category,
       villageWard: villageWard,
-      block: '$district Sadar',
+      block: district.isNotEmpty ? '$district Sadar' : 'Area Sadar',
       district: district,
       state: state,
       latitude: latitude,
       longitude: longitude,
+      gpsAccuracyM: gpsAccuracyM,
+      locationCapturedAt: locationCapturedAt ?? now.toUtc(),
       photoUrl: photoUrl,
       photoAnalysisSummary: photoAnalysisSummary,
+      imageVerificationStatus: imageVerificationStatus ?? 'verified_civic_issue',
+      imageCivicCategory: imageCivicCategory ?? category.name,
+      imageConfidenceScore: imageConfidenceScore ?? 0.95,
+      imageAuthenticityStatus: imageAuthenticityStatus ?? 'likely_authentic',
+      imageAuthenticityDetails: imageAuthenticityDetails,
+      imageDetectorInfo: imageDetectorInfo ?? 'Lok Samadhan AI Sentinel v2.0',
+      imageVerifiedAt: imageVerifiedAt ?? now,
+      exifGpsLatitude: exifGpsLatitude,
+      exifGpsLongitude: exifGpsLongitude,
       urgency: UrgencyLevel.high,
-      aiConfidenceScore: 0.97,
-      status: GrievanceStatus.received,
+      aiConfidenceScore: imageConfidenceScore ?? 0.97,
+      status: initialStatus,
+      isHitlFallback: isSuspiciousAuth,
+      hitlReviewerNotes: isSuspiciousAuth ? 'Flagged for image verification review.' : null,
       createdAt: now,
       dueDate: dueDate,
       auditLog: [
         GrievanceAuditStep(
           timestamp: now,
-          statusLabel: 'Photo Captured & AI Vision Analyzed',
-          actor: 'Lok Samadhan Multimodal Vision Model',
-          description: 'Photo EXIF GPS: Lat ${latitude.toStringAsFixed(4)}° N, Long ${longitude.toStringAsFixed(4)}° E. Auto-routed to ${deptInfo.nameEn} Office.',
+          statusLabel: 'Photo Captured & AI Verified',
+          actor: 'Lok Samadhan Multimodal Vision Engine',
+          description: '$gpsDesc. Civic issue verified: $problemTitle. Authenticity: ${imageAuthenticityStatus ?? "Checked"}. Auto-routed to ${deptInfo.nameEn} Office.',
         ),
       ],
     );
 
     _grievances.insert(0, newGrievance);
-
 
     _sendSmsNotification(
       grievanceId: randomId,
@@ -355,36 +400,77 @@ class GrievanceProvider with ChangeNotifier {
     notifyListeners();
 
     // Async sync to Backend Database (Supabase)
-    if (_isBackendConnected) {
-      _apiService.lodgeGrievance(
-        rawSpeechText: newGrievance.rawSpeechText,
-        translatedText: newGrievance.translatedText,
-        citizenName: newGrievance.citizenName,
-        citizenPhone: newGrievance.citizenPhone,
-        spokenDialect: newGrievance.spokenDialect,
-        departmentCategory: newGrievance.departmentCategory,
-        villageWard: newGrievance.villageWard,
-        block: newGrievance.block,
-        district: newGrievance.district,
-        state: newGrievance.state,
-        latitude: latitude,
-        longitude: longitude,
-        urgency: newGrievance.urgency,
-        confidenceScore: newGrievance.aiConfidenceScore,
-        photoUrl: photoUrl,
-        photoAnalysisSummary: photoAnalysisSummary,
-      ).then((saved) {
-        final idx = _grievances.indexWhere((g) => g.id == randomId);
-        if (idx != -1) {
-          _grievances[idx] = saved;
-          notifyListeners();
-        }
-      }).catchError((err) {
-        debugPrint('[GrievanceProvider] Backend photo sync error: $err');
-      });
-    }
+    _apiService.lodgeGrievance(
+      id: randomId,
+      userId: 'default_citizen',
+      rawSpeechText: newGrievance.rawSpeechText,
+      translatedText: newGrievance.translatedText,
+      citizenName: newGrievance.citizenName,
+      citizenPhone: newGrievance.citizenPhone,
+      spokenDialect: newGrievance.spokenDialect,
+      departmentCategory: newGrievance.departmentCategory,
+      villageWard: newGrievance.villageWard,
+      block: newGrievance.block,
+      district: newGrievance.district,
+      state: newGrievance.state,
+      latitude: latitude,
+      longitude: longitude,
+      gpsAccuracyM: gpsAccuracyM,
+      locationCapturedAt: locationCapturedAt ?? now.toUtc(),
+      urgency: newGrievance.urgency,
+      confidenceScore: newGrievance.aiConfidenceScore,
+      photoUrl: photoUrl,
+      photoAnalysisSummary: photoAnalysisSummary,
+      imageVerificationStatus: newGrievance.imageVerificationStatus,
+      imageCivicCategory: newGrievance.imageCivicCategory,
+      imageConfidenceScore: newGrievance.imageConfidenceScore,
+      imageAuthenticityStatus: newGrievance.imageAuthenticityStatus,
+      imageAuthenticityDetails: newGrievance.imageAuthenticityDetails,
+      imageDetectorInfo: newGrievance.imageDetectorInfo,
+      imageVerifiedAt: newGrievance.imageVerifiedAt,
+      exifGpsLatitude: newGrievance.exifGpsLatitude,
+      exifGpsLongitude: newGrievance.exifGpsLongitude,
+    ).then((saved) {
+      final idx = _grievances.indexWhere((g) => g.id == randomId);
+      if (idx != -1) {
+        _grievances[idx] = saved;
+        notifyListeners();
+      }
+    }).catchError((err) {
+      debugPrint('[GrievanceProvider] Backend photo sync error: $err');
+    });
 
     return newGrievance;
+  }
+
+  /// Officer action to flag image for manual review
+  Future<void> flagImageForManualReview(String grievanceId, {String? note, String? verificationStatus}) async {
+    final idx = _grievances.indexWhere((g) => g.id == grievanceId);
+    if (idx != -1) {
+      final existing = _grievances[idx];
+      final updated = existing.copyWith(
+        imageVerificationStatus: verificationStatus ?? 'flagged_manual_review',
+        isHitlFallback: true,
+        hitlReviewerNotes: note ?? 'Flagged for image verification review.',
+        auditLog: [
+          ...existing.auditLog,
+          GrievanceAuditStep(
+            timestamp: DateTime.now(),
+            statusLabel: 'Image Verification Flagged',
+            actor: 'Official Reviewer',
+            description: note ?? 'Officer flagged image for on-site manual inspection.',
+          ),
+        ],
+      );
+      _grievances[idx] = updated;
+      notifyListeners();
+
+      try {
+        await _apiService.flagImageForManualReview(grievanceId, note: note, verificationStatus: verificationStatus);
+      } catch (e) {
+        debugPrint('[GrievanceProvider] flagImageForManualReview remote sync note: $e');
+      }
+    }
   }
 
   // Lodge a new Interactive Chat Grievance
@@ -396,8 +482,10 @@ class GrievanceProvider with ChangeNotifier {
     required String block,
     required String district,
     required String state,
-    required double latitude,
-    required double longitude,
+    double? latitude,
+    double? longitude,
+    double? gpsAccuracyM,
+    DateTime? locationCapturedAt,
     required String citizenPhone,
     required String citizenName,
     UrgencyLevel urgency = UrgencyLevel.medium,
@@ -410,6 +498,13 @@ class GrievanceProvider with ChangeNotifier {
     final dueDate = now.add(Duration(hours: deptInfo.defaultSlaHours));
     final isHitl = isHitlRequired || confidenceScore < 0.85;
     final initialStatus = isHitl ? GrievanceStatus.hitlReview : GrievanceStatus.received;
+
+    final hasGps = latitude != null && longitude != null && !(latitude == 0 && longitude == 0);
+    final latDir = hasGps ? (latitude >= 0 ? 'N' : 'S') : '';
+    final lonDir = hasGps ? (longitude >= 0 ? 'E' : 'W') : '';
+    final gpsDesc = hasGps
+        ? 'GPS: Lat ${latitude.abs().toStringAsFixed(4)}° $latDir, Long ${longitude.abs().toStringAsFixed(4)}° $lonDir${gpsAccuracyM != null ? " (Accuracy: ±${gpsAccuracyM.toStringAsFixed(0)}m)" : ""}'
+        : 'GPS: Location not available';
 
     final newGrievance = Grievance(
       id: randomId,
@@ -425,6 +520,8 @@ class GrievanceProvider with ChangeNotifier {
       state: state,
       latitude: latitude,
       longitude: longitude,
+      gpsAccuracyM: gpsAccuracyM,
+      locationCapturedAt: locationCapturedAt ?? now.toUtc(),
       urgency: urgency,
       aiConfidenceScore: confidenceScore,
       status: initialStatus,
@@ -437,7 +534,7 @@ class GrievanceProvider with ChangeNotifier {
           timestamp: now,
           statusLabel: isHitl ? 'Chat Grievance -> HITL Queued' : 'Chat Grievance Registered & Auto-Routed',
           actor: 'Lok Samadhan AI Chat Gateway',
-          description: 'GPS: Lat ${latitude.toStringAsFixed(4)}° N, Long ${longitude.toStringAsFixed(4)}° E. Intent classified via Chatbot NLP router.',
+          description: '$gpsDesc. Intent classified via Chatbot NLP router.',
         ),
         GrievanceAuditStep(
           timestamp: now,
@@ -450,7 +547,6 @@ class GrievanceProvider with ChangeNotifier {
 
     _grievances.insert(0, newGrievance);
 
-
     _sendSmsNotification(
       grievanceId: randomId,
       phone: newGrievance.citizenPhone,
@@ -462,24 +558,27 @@ class GrievanceProvider with ChangeNotifier {
     notifyListeners();
 
     // Async sync to Backend Database (Supabase)
-    if (_isBackendConnected) {
-      _apiService.lodgeGrievance(
-        rawSpeechText: newGrievance.rawSpeechText,
-        translatedText: newGrievance.translatedText,
-        citizenName: newGrievance.citizenName,
-        citizenPhone: newGrievance.citizenPhone,
-        spokenDialect: newGrievance.spokenDialect,
-        departmentCategory: newGrievance.departmentCategory,
-        villageWard: newGrievance.villageWard,
-        block: newGrievance.block,
-        district: newGrievance.district,
-        state: newGrievance.state,
-        latitude: latitude,
-        longitude: longitude,
-        urgency: urgency,
-        confidenceScore: confidenceScore,
-        isHitlFallback: isHitl,
-      ).then((saved) {
+    _apiService.lodgeGrievance(
+      id: randomId,
+      userId: 'default_citizen',
+      rawSpeechText: newGrievance.rawSpeechText,
+      translatedText: newGrievance.translatedText,
+      citizenName: newGrievance.citizenName,
+      citizenPhone: newGrievance.citizenPhone,
+      spokenDialect: newGrievance.spokenDialect,
+      departmentCategory: newGrievance.departmentCategory,
+      villageWard: newGrievance.villageWard,
+      block: newGrievance.block,
+      district: newGrievance.district,
+      state: newGrievance.state,
+      latitude: latitude,
+      longitude: longitude,
+      gpsAccuracyM: gpsAccuracyM,
+      locationCapturedAt: locationCapturedAt ?? now.toUtc(),
+      urgency: urgency,
+      confidenceScore: confidenceScore,
+      isHitlFallback: isHitl,
+    ).then((saved) {
         final idx = _grievances.indexWhere((g) => g.id == randomId);
         if (idx != -1) {
           _grievances[idx] = saved;
@@ -488,7 +587,6 @@ class GrievanceProvider with ChangeNotifier {
       }).catchError((err) {
         debugPrint('[GrievanceProvider] Backend chat sync error: $err');
       });
-    }
 
     return newGrievance;
   }

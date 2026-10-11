@@ -11,6 +11,8 @@ import '../../widgets/audio_wave_visualizer.dart';
 import '../../widgets/confidence_badge.dart';
 import '../../widgets/sms_notification_sheet.dart';
 import '../../widgets/voice_readback_dialog.dart';
+import '../../providers/rewards_provider.dart';
+import '../../widgets/rewards/gc_reward_dialog.dart';
 
 class VoiceLodgeScreen extends StatefulWidget {
   const VoiceLodgeScreen({super.key});
@@ -560,14 +562,22 @@ class _VoiceLodgeScreenState extends State<VoiceLodgeScreen> {
                         builder: (ctx) => VoiceReadbackDialog(
                           result: result,
                           dialectName: dialectName,
-                          onConfirm: (name, phone) {
+                          onConfirm: (name, phone) async {
+                            final gpsResult = await locationProvider.acquireFreshGps(context: context);
+                            final lat = gpsResult.latitude ?? locationProvider.latitude;
+                            final lon = gpsResult.longitude ?? locationProvider.longitude;
+                            final acc = gpsResult.accuracy ?? locationProvider.accuracy;
+                            final capAt = gpsResult.capturedAt ?? locationProvider.capturedAt ?? DateTime.now().toUtc();
+
                             final grievance = grievanceProvider.lodgeNewVoiceGrievance(
                               aiResult: result,
                               citizenName: name,
                               citizenPhone: phone,
                               dialectName: dialectName,
-                              latitude: locationProvider.latitude ?? 25.5941,
-                              longitude: locationProvider.longitude ?? 85.1376,
+                              latitude: lat,
+                              longitude: lon,
+                              gpsAccuracyM: acc,
+                              locationCapturedAt: capAt,
                             );
                             voiceEngine.resetEngine();
 
@@ -580,6 +590,27 @@ class _VoiceLodgeScreenState extends State<VoiceLodgeScreen> {
                                 ),
                               ),
                             );
+
+                            // Award Grievance Coin for eligible complaint submission
+                            final rewardsProvider = Provider.of<RewardsProvider>(context, listen: false);
+                            final award = await rewardsProvider.awardEligibleComplaint(
+                              grievance.id,
+                              description: 'Eligible Voice Complaint #${grievance.id}',
+                            );
+                            if (context.mounted) {
+                              if (award.success) {
+                                GcRewardDialog.show(context, award);
+                              } else if (award.alreadyAwarded) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(award.message.isNotEmpty
+                                        ? award.message
+                                        : 'Complaint #${grievance.id} has already been awarded coins.'),
+                                    backgroundColor: Colors.amber.shade800,
+                                  ),
+                                );
+                              }
+                            }
                           },
                         ),
                       );

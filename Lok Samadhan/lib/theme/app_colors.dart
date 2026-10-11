@@ -31,9 +31,11 @@ class AppColors {
 
   // Alert & Escalation Colors
   static const Color warningRed = Color(0xFFDC2626);     // SLA Overdue / High Urgency
+  static const Color errorRed = Color(0xFFDC2626);       // Form & validation errors
   static const Color warningRedBg = Color(0xFFFEF2F2);   // SLA Overdue Background
   static const Color amberOrange = Color(0xFFD97706);    // Medium Urgency / Warning
   static const Color amberOrangeBg = Color(0xFFFFFBEB);  // Amber Background
   static const Color purpleHitl = Color(0xFF7C3AED);     // HITL Review Queue Color
   static const Color purpleHitlBg = Color(0xFFF3E8FF);   // HITL Review Background
+  static const Color emeraldDark = Color(0xFF1B5E20);    // Deep emerald green
 }
